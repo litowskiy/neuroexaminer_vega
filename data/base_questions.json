@@ -1,0 +1,461 @@
+{
+  "python": [
+    {
+      "text": "Что такое GIL (Global Interpreter Lock) в Python и как он влияет на многопоточность?",
+      "is_open": true,
+      "reference_answer": "GIL — мьютекс в CPython, который разрешает выполнение байткода только одному потоку в каждый момент времени. Из-за GIL потоки не дают настоящего параллелизма для CPU-bound задач. Для параллельных вычислений используют multiprocessing (отдельные процессы без GIL) или asyncio (для IO-bound задач). В Jython и PyPy GIL отсутствует."
+    },
+    {
+      "text": "Чем list comprehension отличается от generator expression?",
+      "is_open": true,
+      "reference_answer": "List comprehension [x for x in iterable] создаёт список целиком в памяти. Generator expression (x for x in iterable) создаёт генератор — ленивый итератор, вычисляющий значения по запросу. Генераторы экономят память при больших данных, но поддерживают только однократный проход. Синтаксически отличаются скобками: [] vs ()."
+    },
+    {
+      "text": "Что выведет `list(map(lambda x: x**2, [1, 2, 3]))`?",
+      "is_open": false,
+      "options": [
+        {"text": "[1, 4, 9]", "is_correct": true},
+        {"text": "[1, 2, 3]", "is_correct": false},
+        {"text": "(1, 4, 9)", "is_correct": false},
+        {"text": "[2, 4, 6]", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое декоратор в Python? Как он работает под капотом?",
+      "is_open": true,
+      "reference_answer": "Декоратор — функция, принимающая другую функцию как аргумент и возвращающая новую функцию с расширенным поведением. Синтаксис @decorator эквивалентен func = decorator(func). Декораторы используются через @property, @staticmethod, @classmethod, @functools.wraps. Можно создавать декораторы с аргументами через фабрику декораторов."
+    },
+    {
+      "text": "Какие типы данных в Python являются изменяемыми (mutable)?",
+      "is_open": false,
+      "options": [
+        {"text": "list, dict, set", "is_correct": true},
+        {"text": "int, str, tuple", "is_correct": false},
+        {"text": "str, list, int", "is_correct": false},
+        {"text": "tuple, frozenset, bytes", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое __slots__ и зачем используется?",
+      "is_open": true,
+      "reference_answer": "__slots__ — атрибут класса, явно перечисляющий допустимые атрибуты экземпляра. Python не создаёт __dict__ для экземпляра, что экономит память (особенно при миллионах объектов) и ускоряет доступ к атрибутам. Недостаток: нельзя добавлять произвольные атрибуты экземпляру динамически."
+    },
+    {
+      "text": "Как работает менеджер контекста (оператор with)?",
+      "is_open": false,
+      "options": [
+        {"text": "Вызывает __enter__ при входе и __exit__ при выходе из блока", "is_correct": true},
+        {"text": "Вызывает __init__ и __del__", "is_correct": false},
+        {"text": "Автоматически создаёт try/except блок", "is_correct": false},
+        {"text": "Вызывает __open__ и __close__", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое метакласс в Python?",
+      "is_open": true,
+      "reference_answer": "Метакласс — класс, экземплярами которого являются классы. По умолчанию метакласс — type. Метаклассы позволяют контролировать создание классов: изменять атрибуты, добавлять методы, валидировать структуру при определении класса. Задаётся через metaclass=MyMeta. Применяется в Django ORM, DRF serializers, ABCMeta."
+    },
+    {
+      "text": "Что возвращает функция `range(5)`?",
+      "is_open": false,
+      "options": [
+        {"text": "Объект range, генерирующий числа 0, 1, 2, 3, 4", "is_correct": true},
+        {"text": "Список [0, 1, 2, 3, 4]", "is_correct": false},
+        {"text": "Кортеж (0, 1, 2, 3, 4)", "is_correct": false},
+        {"text": "Генератор чисел 1, 2, 3, 4, 5", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Чем `is` отличается от `==` в Python?",
+      "is_open": true,
+      "reference_answer": "`is` сравнивает идентичность объектов (одинаковый ли id(), т.е. один и тот же объект в памяти). `==` вызывает метод __eq__ и сравнивает значения. Пример: два разных списка с одинаковыми элементами: [] == [] → True, [] is [] → False. `is None` — правильный способ сравнения с None."
+    },
+    {"text": "Python является интерпретируемым языком программирования", "tf_answer": true},
+    {"text": "Кортежи (tuple) в Python можно изменять после создания", "tf_answer": false},
+    {"text": "GIL в CPython ограничивает реальный параллелизм потоков для CPU-задач", "tf_answer": true},
+    {"text": "Функция range() в Python 3 возвращает готовый список чисел", "tf_answer": false},
+    {"text": "В Python можно наследоваться от нескольких классов одновременно", "tf_answer": true}
+  ],
+  "sql": [
+    {
+      "text": "Чем INNER JOIN отличается от LEFT JOIN?",
+      "is_open": true,
+      "reference_answer": "INNER JOIN возвращает только строки, для которых есть совпадения в обеих таблицах. LEFT JOIN возвращает все строки из левой таблицы и совпадающие из правой; при отсутствии совпадения — NULL в столбцах правой таблицы. Аналогично: RIGHT JOIN — все из правой, FULL OUTER JOIN — все из обеих таблиц."
+    },
+    {
+      "text": "Что такое индекс в базе данных и как он ускоряет запросы?",
+      "is_open": true,
+      "reference_answer": "Индекс — структура данных (обычно B-дерево), хранящая отсортированные значения столбца(ов) с указателями на строки таблицы. Ускоряет SELECT по индексированным столбцам (WHERE, ORDER BY, JOIN), но замедляет INSERT/UPDATE/DELETE и занимает место. Без индекса — полный перебор (full table scan)."
+    },
+    {
+      "text": "Что делает оператор GROUP BY?",
+      "is_open": false,
+      "options": [
+        {"text": "Группирует строки с одинаковыми значениями для агрегатных функций", "is_correct": true},
+        {"text": "Сортирует результаты по указанным столбцам", "is_correct": false},
+        {"text": "Фильтрует строки до агрегации", "is_correct": false},
+        {"text": "Объединяет две таблицы по ключу", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Чем WHERE отличается от HAVING?",
+      "is_open": true,
+      "reference_answer": "WHERE фильтрует строки ДО группировки (GROUP BY) — не может использовать агрегатные функции. HAVING фильтрует группы ПОСЛЕ GROUP BY — может использовать агрегатные функции (COUNT, SUM и т.д.). Порядок выполнения: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY."
+    },
+    {
+      "text": "Что такое ACID? Расшифруй каждое свойство.",
+      "is_open": true,
+      "reference_answer": "ACID — свойства транзакций в БД. Atomicity (атомарность): все операции или ни одной. Consistency (согласованность): БД переходит из одного корректного состояния в другое. Isolation (изолированность): транзакции не мешают друг другу. Durability (долговечность): подтверждённые изменения сохраняются даже при сбое."
+    },
+    {
+      "text": "Что возвращает COUNT(*) в отличие от COUNT(column)?",
+      "is_open": false,
+      "options": [
+        {"text": "COUNT(*) считает все строки, COUNT(column) — только строки с NOT NULL", "is_correct": true},
+        {"text": "Оба считают только уникальные значения", "is_correct": false},
+        {"text": "COUNT(*) считает только уникальные строки", "is_correct": false},
+        {"text": "Разницы нет", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое нормализация базы данных? Зачем нужна 3NF?",
+      "is_open": true,
+      "reference_answer": "Нормализация — процесс устранения избыточности данных и аномалий обновления. 1NF: атомарные значения, нет повторяющихся групп. 2NF: нет частичной зависимости от составного ключа. 3NF: нет транзитивных зависимостей (неключевой атрибут не зависит от другого неключевого). 3NF уменьшает дублирование и аномалии вставки/удаления."
+    },
+    {
+      "text": "Какая команда удаляет таблицу полностью?",
+      "is_open": false,
+      "options": [
+        {"text": "DROP TABLE table_name", "is_correct": true},
+        {"text": "DELETE TABLE table_name", "is_correct": false},
+        {"text": "REMOVE TABLE table_name", "is_correct": false},
+        {"text": "TRUNCATE TABLE table_name", "is_correct": false}
+      ]
+    },
+    {"text": "NULL = NULL возвращает TRUE в стандартном SQL", "tf_answer": false},
+    {"text": "HAVING фильтрует строки после группировки, а WHERE — до группировки", "tf_answer": true},
+    {"text": "INNER JOIN возвращает строки даже при отсутствии совпадения в одной из таблиц", "tf_answer": false},
+    {"text": "Индексы ускоряют SELECT, но замедляют INSERT и UPDATE", "tf_answer": true},
+    {"text": "ROLLBACK подтверждает все изменения в рамках текущей транзакции", "tf_answer": false}
+  ],
+  "git": [
+    {
+      "text": "Чем git merge отличается от git rebase?",
+      "is_open": true,
+      "reference_answer": "git merge создаёт новый коммит слияния, сохраняя всю историю веток. git rebase переносит коммиты одной ветки поверх другой, переписывая SHA, создавая линейную историю. Merge безопаснее для публичных веток. Золотое правило: не перебазировать публичные ветки, так как это переписывает историю."
+    },
+    {
+      "text": "Что делает git stash?",
+      "is_open": false,
+      "options": [
+        {"text": "Временно сохраняет незакоммиченные изменения в стек", "is_correct": true},
+        {"text": "Удаляет все незакоммиченные изменения", "is_correct": false},
+        {"text": "Создаёт новую ветку из текущих изменений", "is_correct": false},
+        {"text": "Откатывает последний коммит", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое HEAD в Git?",
+      "is_open": true,
+      "reference_answer": "HEAD — указатель на текущий коммит (обычно последний коммит текущей ветки). Detached HEAD — состояние, когда HEAD указывает непосредственно на коммит, а не на ветку. HEAD^ — родительский коммит, HEAD~2 — дедушка. При создании коммита HEAD перемещается вперёд."
+    },
+    {
+      "text": "Какая команда отменяет последний коммит, НЕ удаляя изменения из рабочей директории?",
+      "is_open": false,
+      "options": [
+        {"text": "git reset HEAD~1", "is_correct": true},
+        {"text": "git revert HEAD", "is_correct": false},
+        {"text": "git checkout HEAD~1", "is_correct": false},
+        {"text": "git restore --staged .", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Чем git reset отличается от git revert?",
+      "is_open": true,
+      "reference_answer": "git reset переписывает историю (удаляет коммиты), опасен для публичных веток. Варианты: --soft (изменения остаются staged), --mixed (unstaged), --hard (изменения удаляются). git revert создаёт новый коммит, отменяющий изменения — безопасен для публичных веток, так как не переписывает историю."
+    },
+    {
+      "text": "Что делает git cherry-pick?",
+      "is_open": true,
+      "reference_answer": "git cherry-pick применяет изменения из конкретного коммита к текущей ветке, создавая новый коммит с теми же изменениями но новым SHA. Используется для переноса отдельных фиксов из одной ветки в другую без полного слияния веток."
+    },
+    {
+      "text": "Какая команда показывает все ветки включая удалённые?",
+      "is_open": false,
+      "options": [
+        {"text": "git branch -a", "is_correct": true},
+        {"text": "git branch -r", "is_correct": false},
+        {"text": "git remote -v", "is_correct": false},
+        {"text": "git log --all", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Для чего используется .gitignore?",
+      "is_open": false,
+      "options": [
+        {"text": "Указывает Git какие файлы и папки не отслеживать", "is_correct": true},
+        {"text": "Хранит конфигурацию репозитория", "is_correct": false},
+        {"text": "Список заблокированных контрибьюторов", "is_correct": false},
+        {"text": "История всех выполненных git команд", "is_correct": false}
+      ]
+    },
+    {"text": "git rebase переписывает историю коммитов, изменяя их SHA", "tf_answer": true},
+    {"text": "git fetch скачивает изменения с удалённого репозитория и автоматически сливает их в текущую ветку", "tf_answer": false},
+    {"text": "git stash сохраняет незафиксированные изменения во временное хранилище", "tf_answer": true},
+    {"text": "При fast-forward merge Git всегда создаёт новый merge-коммит", "tf_answer": false},
+    {"text": "git blame показывает, кто и когда последний раз менял каждую строку файла", "tf_answer": true}
+  ],
+  "linux": [
+    {
+      "text": "Что такое процесс в Linux? Чем отличается от потока?",
+      "is_open": true,
+      "reference_answer": "Процесс — программа в выполнении с собственным адресным пространством, файловыми дескрипторами и ресурсами. Поток (thread) — единица выполнения внутри процесса, разделяющая память с другими потоками. Создание потока быстрее и дешевле создания процесса. В Linux потоки реализованы через clone() с общей памятью."
+    },
+    {
+      "text": "Что делает команда chmod 755 file?",
+      "is_open": false,
+      "options": [
+        {"text": "Владелец: rwx, Группа: r-x, Остальные: r-x", "is_correct": true},
+        {"text": "Владелец: rwx, Группа: rwx, Остальные: r-x", "is_correct": false},
+        {"text": "Все права для всех пользователей", "is_correct": false},
+        {"text": "Владелец: rw-, Группа: r-x, Остальные: r-x", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое pipe (|) в командной строке?",
+      "is_open": true,
+      "reference_answer": "Pipe (|) перенаправляет стандартный вывод (stdout) одной команды на стандартный ввод (stdin) следующей. Создаёт IPC через анонимный канал в ядре. Пример: cat file.txt | grep 'error' | wc -l — считает строки с 'error'. Позволяет строить цепочки команд без временных файлов."
+    },
+    {
+      "text": "Какая команда показывает запущенные процессы с детальной информацией?",
+      "is_open": false,
+      "options": [
+        {"text": "ps aux", "is_correct": true},
+        {"text": "ls -la", "is_correct": false},
+        {"text": "top --help", "is_correct": false},
+        {"text": "df -h", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое переменная окружения? Как задать её постоянно?",
+      "is_open": true,
+      "reference_answer": "Переменная окружения — именованная переменная, доступная процессу и его дочерним процессам. Временно: export VAR=value (только для текущей сессии). Постоянно: добавить в ~/.bashrc или ~/.zshrc. Дочерние процессы наследуют переменные родителя. Просмотр: env или printenv."
+    },
+    {
+      "text": "Чем kill -9 отличается от kill -15?",
+      "is_open": true,
+      "reference_answer": "kill -15 (SIGTERM) — вежливый запрос на завершение; процесс может перехватить сигнал и завершиться корректно (закрыть файлы, освободить ресурсы). kill -9 (SIGKILL) — немедленное принудительное завершение ядром; процесс не может перехватить или игнорировать. Всегда пробуй -15 перед -9."
+    },
+    {
+      "text": "Что показывает команда df -h?",
+      "is_open": false,
+      "options": [
+        {"text": "Использование дискового пространства файловых систем в читаемом формате", "is_correct": true},
+        {"text": "Использование оперативной памяти", "is_correct": false},
+        {"text": "Нагрузку на процессор", "is_correct": false},
+        {"text": "Сетевые интерфейсы и их статус", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что делает команда grep -r 'pattern' /path?",
+      "is_open": false,
+      "options": [
+        {"text": "Рекурсивно ищет строки с паттерном во всех файлах директории", "is_correct": true},
+        {"text": "Удаляет строки с паттерном из файлов", "is_correct": false},
+        {"text": "Заменяет паттерн на новое значение", "is_correct": false},
+        {"text": "Создаёт резервную копию файлов", "is_correct": false}
+      ]
+    },
+    {"text": "chmod 777 даёт полные права на файл всем пользователям системы", "tf_answer": true},
+    {"text": "kill -9 позволяет процессу корректно завершиться, освободив ресурсы", "tf_answer": false},
+    {"text": "Файлы, начинающиеся с точки в Linux, являются скрытыми", "tf_answer": true},
+    {"text": "SIGTERM (kill -15) нельзя перехватить или проигнорировать в процессе", "tf_answer": false},
+    {"text": "В Linux расширение файла не определяет его тип для операционной системы", "tf_answer": true}
+  ],
+  "algorithms": [
+    {
+      "text": "Что такое O-нотация (Big O) и зачем нужна?",
+      "is_open": true,
+      "reference_answer": "O-нотация описывает верхнюю границу роста времени выполнения или памяти алгоритма в зависимости от размера входных данных. Позволяет сравнивать алгоритмы независимо от железа. Примеры: O(1) — константное, O(log n) — логарифмическое, O(n) — линейное, O(n log n) — линейно-логарифмическое, O(n²) — квадратичное."
+    },
+    {
+      "text": "Какова временная сложность бинарного поиска?",
+      "is_open": false,
+      "options": [
+        {"text": "O(log n)", "is_correct": true},
+        {"text": "O(n)", "is_correct": false},
+        {"text": "O(n log n)", "is_correct": false},
+        {"text": "O(1)", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Чем стек отличается от очереди? Где применяются?",
+      "is_open": true,
+      "reference_answer": "Стек (Stack) — LIFO (Last In, First Out): последний вошёл — первый вышел. Применяется в рекурсии, undo/redo, разборе выражений. Очередь (Queue) — FIFO (First In, First Out): первый вошёл — первый вышел. Применяется в BFS, обработке задач, буферах данных."
+    },
+    {
+      "text": "Что такое рекурсия? Что такое базовый случай?",
+      "is_open": true,
+      "reference_answer": "Рекурсия — вызов функцией самой себя для решения подзадачи. Базовый случай (base case) — условие остановки рекурсии без нового рекурсивного вызова. Без базового случая — бесконечная рекурсия и StackOverflow. Каждый шаг должен приближаться к базовому случаю."
+    },
+    {
+      "text": "Какова временная сложность сортировки слиянием (merge sort)?",
+      "is_open": false,
+      "options": [
+        {"text": "O(n log n) в любом случае", "is_correct": true},
+        {"text": "O(n²) в худшем случае", "is_correct": false},
+        {"text": "O(n) в лучшем случае", "is_correct": false},
+        {"text": "O(log n) в среднем", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое хеш-таблица? Как решается проблема коллизий?",
+      "is_open": true,
+      "reference_answer": "Хеш-таблица хранит пары ключ-значение с O(1) средним временем доступа. Хеш-функция отображает ключ в индекс массива. Коллизия — когда два ключа дают один хеш. Методы разрешения: цепочки (chaining — список в ячейке) и открытая адресация (linear/quadratic probing — поиск свободной ячейки)."
+    },
+    {
+      "text": "Что такое динамическое программирование?",
+      "is_open": true,
+      "reference_answer": "Динамическое программирование (DP) — метод решения задач путём разбивки на перекрывающиеся подзадачи с запоминанием решений (мемоизация). Подходы: top-down (рекурсия + мемоизация) и bottom-up (итеративное заполнение таблицы). Классические задачи: числа Фибоначчи, задача о рюкзаке, наибольшая общая подпоследовательность."
+    },
+    {
+      "text": "Какая структура данных лежит в основе обхода графа в ширину (BFS)?",
+      "is_open": false,
+      "options": [
+        {"text": "Очередь (Queue)", "is_correct": true},
+        {"text": "Стек (Stack)", "is_correct": false},
+        {"text": "Приоритетная очередь", "is_correct": false},
+        {"text": "Хеш-таблица", "is_correct": false}
+      ]
+    },
+    {"text": "Сортировка слиянием (Merge Sort) гарантирует O(n log n) даже в худшем случае", "tf_answer": true},
+    {"text": "Бинарный поиск работает на неотсортированных массивах", "tf_answer": false},
+    {"text": "Стек работает по принципу FIFO: первый вошёл — первый вышел", "tf_answer": false},
+    {"text": "Алгоритм Дейкстры не работает корректно с рёбрами отрицательного веса", "tf_answer": true},
+    {"text": "Хеш-таблица обеспечивает O(1) среднее время поиска по ключу", "tf_answer": true}
+  ],
+  "django": [
+    {
+      "text": "Что такое Django ORM? Как работает QuerySet?",
+      "is_open": true,
+      "reference_answer": "Django ORM — прослойка между Python-кодом и базой данных. Модели — Python-классы (наследники models.Model), атрибуты — поля в БД. ORM генерирует SQL автоматически. QuerySet — ленивая последовательность запросов; выполняется при итерации, list(), len() или явном вычислении. Поддерживает chaining: User.objects.filter(...).order_by(...).select_related(...)."
+    },
+    {
+      "text": "Что такое Django middleware?",
+      "is_open": true,
+      "reference_answer": "Middleware — компоненты, обрабатывающие запрос/ответ глобально. Цепочка обрабатывает запрос по порядку (request) и ответ в обратном (response). Встроенные: SessionMiddleware, AuthenticationMiddleware, CsrfViewMiddleware. Используется для логирования, аутентификации, обработки исключений, gzip-сжатия."
+    },
+    {
+      "text": "Что делает команда python manage.py migrate?",
+      "is_open": false,
+      "options": [
+        {"text": "Применяет непримененные миграции к базе данных", "is_correct": true},
+        {"text": "Создаёт новые файлы миграций", "is_correct": false},
+        {"text": "Откатывает последнюю миграцию", "is_correct": false},
+        {"text": "Экспортирует структуру БД в SQL-файл", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое select_related и prefetch_related? Когда использовать каждый?",
+      "is_open": true,
+      "reference_answer": "select_related выполняет JOIN для ForeignKey/OneToOne, загружая связанные объекты одним запросом. prefetch_related выполняет отдельный запрос для ManyToMany и обратных FK, объединяя в Python. Оба решают проблему N+1 запросов. select_related быстрее для прямых FK, prefetch_related — для M2M и reverse FK."
+    },
+    {
+      "text": "Какой декоратор ограничивает доступ к view только аутентифицированным пользователям?",
+      "is_open": false,
+      "options": [
+        {"text": "@login_required", "is_correct": true},
+        {"text": "@authenticated", "is_correct": false},
+        {"text": "@require_login", "is_correct": false},
+        {"text": "@permission_required('is_authenticated')", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое Django signals? Приведи пример использования.",
+      "is_open": true,
+      "reference_answer": "Signals — механизм уведомлений между компонентами Django. Отправитель посылает сигнал, все подписчики уведомляются. Встроенные: pre_save, post_save, pre_delete, post_delete. Пример: создание профиля пользователя после регистрации через post_save. Использование: @receiver(post_save, sender=User). Могут усложнить отладку при злоупотреблении."
+    },
+    {
+      "text": "Чем CBV отличается от FBV в Django?",
+      "is_open": true,
+      "reference_answer": "FBV (Function-Based Views) — простые функции request → response. Просты для понимания, хороши для уникальной логики. CBV (Class-Based Views) — классы с методами get(), post(). Переиспользование через наследование и миксины. Встроенные CBV: ListView, DetailView, CreateView, UpdateView, DeleteView — значительно сокращают код."
+    },
+    {
+      "text": "Что такое CSRF-защита и как Django её реализует?",
+      "is_open": false,
+      "options": [
+        {"text": "Защита от межсайтовой подделки запросов через скрытый токен в форме", "is_correct": true},
+        {"text": "Шифрование паролей пользователей в базе данных", "is_correct": false},
+        {"text": "Ограничение числа запросов от одного IP-адреса", "is_correct": false},
+        {"text": "Проверка прав доступа к URL-маршрутам", "is_correct": false}
+      ]
+    },
+    {"text": "Django ORM автоматически защищает от SQL-инъекций при использовании стандартных методов", "tf_answer": true},
+    {"text": "Django поддерживает только PostgreSQL в качестве базы данных", "tf_answer": false},
+    {"text": "Метод get() в Django ORM генерирует исключение, если найдено несколько объектов", "tf_answer": true},
+    {"text": "Middleware в Django выполняется только при обработке входящего запроса, но не ответа", "tf_answer": false},
+    {"text": "select_related выполняет JOIN и загружает связанные ForeignKey-объекты одним запросом", "tf_answer": true}
+  ],
+  "fastapi": [
+    {
+      "text": "Что такое FastAPI? Чем отличается от Flask и Django?",
+      "is_open": true,
+      "reference_answer": "FastAPI — асинхронный web-фреймворк на Python, основанный на Starlette и Pydantic. Отличия: нативный async/await, автогенерация OpenAPI/Swagger документации, валидация через Pydantic, аннотации типов как основа API. Быстрее Flask (асинхронность), компактнее Django (нет ORM и admin по умолчанию). Один из самых быстрых Python-фреймворков."
+    },
+    {
+      "text": "Что такое Pydantic BaseModel и зачем используется в FastAPI?",
+      "is_open": true,
+      "reference_answer": "Pydantic BaseModel — базовый класс для схем данных с автоматической валидацией, сериализацией и документацией на основе аннотаций типов. FastAPI использует его для: валидации request body, формирования response_model, query/path параметров. Ошибки валидации автоматически возвращают 422 с подробностями."
+    },
+    {
+      "text": "Что делает декоратор @router.get('/path') в FastAPI?",
+      "is_open": false,
+      "options": [
+        {"text": "Регистрирует функцию как обработчик GET-запросов для указанного пути", "is_correct": true},
+        {"text": "Создаёт новый роутер с базовым путём", "is_correct": false},
+        {"text": "Добавляет обязательную аутентификацию к маршруту", "is_correct": false},
+        {"text": "Кэширует результат функции для данного пути", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое dependency injection в FastAPI? Как работает Depends()?",
+      "is_open": true,
+      "reference_answer": "Dependency Injection в FastAPI — автоматическое предоставление зависимостей через параметры функций с Depends(). Зависимости могут быть функциями или классами, поддерживают вложенность и yield для cleanup (закрытие сессии БД). Пример: db: AsyncSession = Depends(get_db). Упрощает тестирование через подмену зависимостей."
+    },
+    {
+      "text": "Как FastAPI обрабатывает ошибки валидации входных данных?",
+      "is_open": false,
+      "options": [
+        {"text": "Автоматически возвращает 422 Unprocessable Entity с деталями ошибок", "is_correct": true},
+        {"text": "Возвращает 400 Bad Request без подробностей", "is_correct": false},
+        {"text": "Генерирует исключение Python для ручной обработки", "is_correct": false},
+        {"text": "Игнорирует ошибки и использует значения по умолчанию", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое BackgroundTasks в FastAPI? Когда использовать?",
+      "is_open": true,
+      "reference_answer": "BackgroundTasks — встроенный механизм для запуска задач после отправки ответа клиенту. Задачи выполняются в том же event loop, не требуют Celery/Redis. Подходит для простых задач: отправка email, логирование. Для тяжёлых CPU-bound задач используют Celery, ARQ или другие очереди."
+    },
+    {
+      "text": "Какой HTTP статус код FastAPI возвращает по умолчанию при успешном POST?",
+      "is_open": false,
+      "options": [
+        {"text": "200 OK", "is_correct": true},
+        {"text": "201 Created", "is_correct": false},
+        {"text": "204 No Content", "is_correct": false},
+        {"text": "202 Accepted", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Что такое lifespan в FastAPI (startup/shutdown)?",
+      "is_open": true,
+      "reference_answer": "lifespan — asynccontextmanager, выполняющий код при запуске (до yield) и остановке (после yield) приложения. Используется для: инициализации БД, создания пула соединений, загрузки ML-моделей. Современный способ (FastAPI 0.93+): @asynccontextmanager async def lifespan(app): ... yield .... Заменяет устаревшие @app.on_event('startup'/'shutdown')."
+    },
+    {"text": "FastAPI автоматически генерирует Swagger-документацию на основе аннотаций типов", "tf_answer": true},
+    {"text": "FastAPI использует только синхронные функции-обработчики", "tf_answer": false},
+    {"text": "Pydantic в FastAPI используется для валидации входных данных и сериализации ответов", "tf_answer": true},
+    {"text": "В FastAPI нельзя использовать Depends() с асинхронными функциями", "tf_answer": false},
+    {"text": "FastAPI автоматически возвращает HTTP 422 при ошибке валидации входных данных", "tf_answer": true}
+  ]
+}

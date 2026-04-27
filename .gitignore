@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.db
+*.db-shm
+*.db-wal
+/tmp/interview_bot.pid
+.idea/
+.DS_Store
