@@ -15,5 +15,5 @@
 - Документирование системы
 - Подготовка пояснительной записки и презентации дипломной работы  
   
-Поянительная записка (черновик): https://docs.google.com/document/d/1UVLW1EfXLRqiv7I1XS1167tj35GQS12_Yv6by_IJcYE/edit?usp=sharing
+Поянительная записка (черновик): https://docs.google.com/document/d/1UVLW1EfXLRqiv7I1XS1167tj35GQS12_Yv6by_IJcYE/edit?usp=sharing  
 Текущий прототип (Telegram): @hse_heuro_bot
