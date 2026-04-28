@@ -20,6 +20,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from bot.keyboards import (
     ANSWER_LETTERS,
@@ -652,7 +653,11 @@ async def _load_session(state: FSMContext, db: AsyncSession) -> TrainingSession 
 async def _load_questions_by_ids(ids: list[int], db: AsyncSession) -> list[Question]:
     if not ids:
         return []
-    result = await db.execute(select(Question).where(Question.id.in_(ids)))
+    result = await db.execute(
+        select(Question)
+        .where(Question.id.in_(ids))
+        .options(selectinload(Question.options))
+    )
     by_id = {q.id: q for q in result.scalars().all()}
     return [by_id[i] for i in ids if i in by_id]
 
