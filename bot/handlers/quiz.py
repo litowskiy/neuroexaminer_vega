@@ -345,7 +345,9 @@ async def _show_next_question(
         return
 
     q_id = ids[session.current_index]
-    question = await db.scalar(select(Question).where(Question.id == q_id))
+    question = await db.scalar(
+        select(Question).where(Question.id == q_id).options(selectinload(Question.options))
+    )
     if not question:
         session.current_index += 1
         await db.commit()
