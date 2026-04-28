@@ -38,7 +38,8 @@ async def cmd_start(message: Message, state: FSMContext, db: AsyncSession) -> No
     name = message.from_user.first_name or "пользователь"
     await message.answer(
         f"Здравствуйте, {name}.\n\n"
-        "Бот для подготовки к техническим собеседованиям.\n\n"
+        "Я - бот Нейроэкзаменатор"".\n\n"
+        "Со мной ты сможешь подготовиться к важному экзамену или собеседованию!"".\n\n"
         "Возможности:\n"
         "— загрузить учебный материал (PDF, DOCX, TXT, MD)\n"
         "— пройти тренировку по встроенным темам\n"
