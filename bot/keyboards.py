@@ -30,7 +30,7 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
 
 
 def material_action_keyboard(doc_id: int) -> InlineKeyboardMarkup:
-    """Выбор действия с конкретным материалом: тренировка или чат."""
+    """Выбор действия с конкретным материалом: тренировка, чат или тьютор."""
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(
         text="Тренировка (тест / вопросы)", callback_data=f"mat_quiz:{doc_id}",
@@ -38,13 +38,42 @@ def material_action_keyboard(doc_id: int) -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(
         text="Задать вопросы по материалу", callback_data=f"mat_chat:{doc_id}",
     ))
+    builder.row(InlineKeyboardButton(
+        text="AI-тьютор", callback_data=f"mat_tutor:{doc_id}",
+    ))
     builder.row(InlineKeyboardButton(text="Назад", callback_data="my_materials"))
+    return builder.as_markup()
+
+
+def topic_action_keyboard(topic_key: str) -> InlineKeyboardMarkup:
+    """Выбор действия для встроенной темы: тренировка или тьютор."""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="Тренировка (тест / вопросы)", callback_data=f"topic_quiz:{topic_key}",
+    ))
+    builder.row(InlineKeyboardButton(
+        text="AI-тьютор", callback_data=f"topic_tutor:{topic_key}",
+    ))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="topics"))
     return builder.as_markup()
 
 
 def stop_chat_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Завершить", callback_data="stop_chat"))
+    return builder.as_markup()
+
+
+def tutor_next_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Следующий вопрос", callback_data="tutor_next"))
+    builder.row(InlineKeyboardButton(text="Завершить", callback_data="tutor_stop"))
+    return builder.as_markup()
+
+
+def stop_tutor_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Завершить", callback_data="tutor_stop"))
     return builder.as_markup()
 
 

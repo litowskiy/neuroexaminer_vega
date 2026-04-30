@@ -1,13 +1,8 @@
 """
-Режим «Задать вопросы по материалу».
+Режим «Задать вопросы по материалу» (RAG-чат).
 
-Пользователь выбирает загруженный документ и может свободно задавать
-вопросы — бот отвечает на основе текста документа (RAG через FAISS).
-
-Поток:
-1. mat_chat:{doc_id} → проверяем/строим FAISS-индекс → ChatStates.in_chat
-2. Каждое сообщение пользователя → answer_question() → ответ
-3. stop_chat → очищаем состояние, возвращаемся в меню
+Использует ConversationalRetrievalChain с return_source_documents=True,
+показывает цитаты из документа после каждого ответа.
 """
 import logging
 
@@ -21,7 +16,7 @@ from bot.keyboards import main_menu_keyboard, stop_chat_keyboard
 from bot.states import ChatStates
 from database.models import Document
 from services.vector_store import (
-    answer_question,
+    answer_with_sources,
     build_index,
     index_exists,
     load_document_text,
@@ -29,6 +24,18 @@ from services.vector_store import (
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+SOURCE_PREVIEW_LEN = 160
+
+
+def _format_sources(chunks: list[str]) -> str:
+    if not chunks:
+        return ""
+    lines = []
+    for chunk in chunks[:3]:
+        preview = chunk.strip().replace("\n", " ")[:SOURCE_PREVIEW_LEN]
+        lines.append(f"<i>«{preview}…»</i>")
+    return "\n\n<b>Источники:</b>\n" + "\n".join(lines)
 
 
 @router.callback_query(F.data.startswith("mat_chat:"))
@@ -49,8 +56,7 @@ async def start_chat(
         if not text:
             await callback.message.edit_text(
                 "Текст документа не найден на сервере.\n"
-                "Пожалуйста, загрузите файл заново — "
-                "это нужно только один раз.",
+                "Пожалуйста, загрузите файл заново.",
                 reply_markup=main_menu_keyboard(),
             )
             return
@@ -69,22 +75,22 @@ async def start_chat(
             )
             return
         await status_msg.edit_text(
-            f"Материал «{doc.filename}» готов к работе.\n\n"
+            f"Материал «{doc.filename}» готов.\n\n"
             "Задавайте любые вопросы по тексту документа.\n"
+            "Бот ответит и покажет, из каких частей материала взята информация.\n\n"
             "Нажмите «Завершить», чтобы выйти.",
             reply_markup=stop_chat_keyboard(),
         )
     else:
         await callback.message.edit_text(
             f"Материал «{doc.filename}»\n\n"
-            "Задавайте любые вопросы по тексту документа.\n"
+            "Задавайте любые вопросы — покажу источники из документа.\n\n"
             "Нажмите «Завершить», чтобы выйти.",
             reply_markup=stop_chat_keyboard(),
         )
 
     await state.set_state(ChatStates.in_chat)
     await state.update_data(
-        chat_doc_id=doc_id,
         chat_text_hash=text_hash,
         chat_doc_name=doc.filename,
         chat_history=[],
@@ -92,9 +98,7 @@ async def start_chat(
 
 
 @router.message(ChatStates.in_chat, F.text)
-async def handle_chat_message(
-    message: Message, state: FSMContext
-) -> None:
+async def handle_chat_message(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     text_hash: str = data.get("chat_text_hash", "")
     history: list = data.get("chat_history", [])
@@ -110,7 +114,7 @@ async def handle_chat_message(
     thinking_msg = await message.answer("Думаю...")
 
     try:
-        answer = await answer_question(
+        answer, sources = await answer_with_sources(
             text_hash=text_hash,
             question=message.text,
             history=history,
@@ -118,7 +122,7 @@ async def handle_chat_message(
     except Exception as exc:
         logger.error("RAG answer failed: %s", exc)
         await thinking_msg.edit_text(
-            f"Не удалось получить ответ: {exc}\n\nПопробуйте ещё раз.",
+            f"Не удалось получить ответ: {exc}",
             reply_markup=stop_chat_keyboard(),
         )
         return
@@ -126,7 +130,11 @@ async def handle_chat_message(
     history.append((message.text, answer))
     await state.update_data(chat_history=history)
 
-    await thinking_msg.edit_text(answer, reply_markup=stop_chat_keyboard())
+    sources_text = _format_sources(sources)
+    await thinking_msg.edit_text(
+        answer + sources_text,
+        reply_markup=stop_chat_keyboard(),
+    )
 
 
 @router.callback_query(ChatStates.in_chat, F.data == "stop_chat")

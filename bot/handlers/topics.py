@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.quiz import start_quiz_setup
 from bot.handlers.start import get_or_create_user
-from bot.keyboards import BUILT_IN_TOPICS, topics_keyboard
+from bot.keyboards import BUILT_IN_TOPICS, topic_action_keyboard, topics_keyboard
 from database.models import Question
 
 router = Router()
@@ -31,7 +31,29 @@ async def show_topics(callback: CallbackQuery, db: AsyncSession) -> None:
 
 
 @router.callback_query(F.data.startswith("topic:"))
-async def select_topic(
+async def select_topic(callback: CallbackQuery, db: AsyncSession) -> None:
+    topic_key = callback.data.split(":", 1)[1]
+    label = BUILT_IN_TOPICS.get(topic_key, topic_key)
+
+    questions = (await db.execute(
+        select(Question).where(
+            Question.category == topic_key,
+            Question.document_id.is_(None),
+        )
+    )).scalars().all()
+
+    if not questions:
+        await callback.answer(f"По теме «{label}» пока нет вопросов.", show_alert=True)
+        return
+
+    await callback.message.edit_text(
+        f"Тема: {label}\n\nЧто хотите сделать?",
+        reply_markup=topic_action_keyboard(topic_key),
+    )
+
+
+@router.callback_query(F.data.startswith("topic_quiz:"))
+async def topic_start_quiz(
     callback: CallbackQuery, state: FSMContext, db: AsyncSession
 ) -> None:
     topic_key = callback.data.split(":", 1)[1]
@@ -45,7 +67,7 @@ async def select_topic(
     )).scalars().all()
 
     if not questions:
-        await callback.answer(f"По теме «{label}» пока нет вопросов.", show_alert=True)
+        await callback.answer(f"По теме «{label}» нет вопросов.", show_alert=True)
         return
 
     user = await get_or_create_user(
