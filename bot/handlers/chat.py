@@ -4,6 +4,7 @@
 Использует ConversationalRetrievalChain с return_source_documents=True,
 показывает цитаты из документа после каждого ответа.
 """
+import html
 import logging
 
 from aiogram import F, Router
@@ -34,7 +35,7 @@ def _format_sources(chunks: list[str]) -> str:
     lines = []
     for chunk in chunks[:3]:
         preview = chunk.strip().replace("\n", " ")[:SOURCE_PREVIEW_LEN]
-        lines.append(f"<i>«{preview}…»</i>")
+        lines.append(f"<i>«{html.escape(preview)}…»</i>")
     return "\n\n<b>Источники:</b>\n" + "\n".join(lines)
 
 
@@ -132,7 +133,7 @@ async def handle_chat_message(message: Message, state: FSMContext) -> None:
 
     sources_text = _format_sources(sources)
     await thinking_msg.edit_text(
-        answer + sources_text,
+        html.escape(answer) + sources_text,
         reply_markup=stop_chat_keyboard(),
     )
 

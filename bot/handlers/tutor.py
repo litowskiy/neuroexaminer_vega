@@ -5,6 +5,7 @@ AI-тьютор: интерактивное обучение с LLM-агенто
 обратной связью, объясняет темы. Работает как с документами (+ RAG),
 так и со встроенными темами.
 """
+import html
 import logging
 
 from aiogram import F, Router
@@ -143,7 +144,7 @@ async def _run_step_and_reply(
         tutor_asked=new_asked,
     )
 
-    await thinking_msg.edit_text(action.message, reply_markup=keyboard)
+    await thinking_msg.edit_text(html.escape(action.message), reply_markup=keyboard)
 
 
 async def _start_tutor(
