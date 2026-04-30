@@ -14,3 +14,7 @@ class QuizSetupStates(StatesGroup):
 
 class QuizStates(StatesGroup):
     in_session = State()
+
+
+class ChatStates(StatesGroup):
+    in_chat = State()

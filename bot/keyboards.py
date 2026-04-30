@@ -29,6 +29,25 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def material_action_keyboard(doc_id: int) -> InlineKeyboardMarkup:
+    """Выбор действия с конкретным материалом: тренировка или чат."""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="Тренировка (тест / вопросы)", callback_data=f"mat_quiz:{doc_id}",
+    ))
+    builder.row(InlineKeyboardButton(
+        text="Задать вопросы по материалу", callback_data=f"mat_chat:{doc_id}",
+    ))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="my_materials"))
+    return builder.as_markup()
+
+
+def stop_chat_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Завершить", callback_data="stop_chat"))
+    return builder.as_markup()
+
+
 def topics_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for key, label in BUILT_IN_TOPICS.items():

@@ -9,3 +9,4 @@ __pycache__/
 /tmp/interview_bot.pid
 .idea/
 .DS_Store
+README.md

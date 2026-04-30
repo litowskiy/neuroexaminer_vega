@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.quiz import start_quiz_setup
 from bot.handlers.start import get_or_create_user
-from bot.keyboards import main_menu_keyboard, materials_keyboard
+from bot.keyboards import main_menu_keyboard, material_action_keyboard, materials_keyboard
 from database.models import Document, Question, User
 
 router = Router()
@@ -49,14 +49,29 @@ async def show_my_materials(callback: CallbackQuery, db: AsyncSession) -> None:
 
 
 @router.callback_query(F.data.startswith("material:"))
-async def select_material(
+async def select_material(callback: CallbackQuery, db: AsyncSession) -> None:
+    doc_id = int(callback.data.split(":", 1)[1])
+
+    doc = await db.scalar(select(Document).where(Document.id == doc_id))
+    if not doc or doc.status != "ready":
+        await callback.answer("Материал не найден или ещё обрабатывается.", show_alert=True)
+        return
+
+    await callback.message.edit_text(
+        f"Материал: {doc.filename}\n\nЧто хотите сделать?",
+        reply_markup=material_action_keyboard(doc_id),
+    )
+
+
+@router.callback_query(F.data.startswith("mat_quiz:"))
+async def material_start_quiz(
     callback: CallbackQuery, state: FSMContext, db: AsyncSession
 ) -> None:
     doc_id = int(callback.data.split(":", 1)[1])
 
     doc = await db.scalar(select(Document).where(Document.id == doc_id))
     if not doc or doc.status != "ready":
-        await callback.answer("Материал не найден или ещё обрабатывается.", show_alert=True)
+        await callback.answer("Материал недоступен.", show_alert=True)
         return
 
     questions = (await db.execute(

@@ -21,6 +21,7 @@ from config import settings
 from database.models import AnswerOption, Document, Question, User
 from services.file_processor import compute_hash, extract_text
 from services.question_generator import generate_questions_from_text, generate_tf_statements
+from services.vector_store import save_document_text
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -86,6 +87,8 @@ async def handle_file(message: Message, state: FSMContext, bot: Bot, db: AsyncSe
         return
 
     text_hash = compute_hash(text)
+    save_document_text(text, text_hash)
+
     existing_doc = await db.scalar(
         select(Document).where(
             Document.text_hash == text_hash,
