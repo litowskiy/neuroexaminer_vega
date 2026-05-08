@@ -18,5 +18,5 @@
 - Подготовка пояснительной записки и презентации дипломной работы   
   
 Поянительная записка: https://docs.google.com/document/d/1UVLW1EfXLRqiv7I1XS1167tj35GQS12_Yv6by_IJcYE/edit?usp=sharing  
-Презентация: https://canva.link/fza1jlf1jj21d2p  (открытие с КВН)
+Презентация: https://canva.link/fza1jlf1jj21d2p  (открытие с КВН)  
 Текущий прототип (Telegram): @hse_heuro_bot  
