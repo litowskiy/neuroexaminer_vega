@@ -69,10 +69,6 @@ async def generate_tf_statements(text: str, count: int = 10) -> list[dict]:
 
 
 async def generate_questions_from_text(text: str, count: int = 20) -> list[dict]:
-    """
-    Генерирует вопросы по тексту. Каждый вопрос содержит и варианты ответов,
-    и эталонный ответ — один набор вопросов работает в любом режиме тренировки.
-    """
     if len(text) > MAX_TEXT_CHARS:
         text = text[:MAX_TEXT_CHARS] + "\n...[текст обрезан]"
 
@@ -81,10 +77,6 @@ async def generate_questions_from_text(text: str, count: int = 20) -> list[dict]
 
 
 async def evaluate_open_answer(question: str, reference: str, user_answer: str) -> bool:
-    """
-    Проверяет текстовый ответ пользователя по эталону через OpenAI.
-    Возвращает True если ответ правильный или в основном правильный.
-    """
     prompt = (
         f"Вопрос: {question}\n"
         f"Эталонный ответ: {reference}\n"

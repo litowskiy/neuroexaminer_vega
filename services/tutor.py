@@ -87,6 +87,8 @@ def _build_messages(
         msgs.append(AIMessage(content=ai))
     if user_message is not None:
         msgs.append(HumanMessage(content=user_message))
+    else:
+        msgs.append(HumanMessage(content="[система] Продолжай: задай следующий вопрос из банка, который ещё не задавался."))
     return msgs
 
 

@@ -5,7 +5,6 @@ from pathlib import Path
 
 
 def extract_text(content: bytes, filename: str) -> str:
-    """Extract plain text from PDF, DOCX, TXT or MD file content."""
     suffix = Path(filename).suffix.lower()
     if suffix == ".pdf":
         text = _from_pdf(content)
@@ -14,21 +13,19 @@ def extract_text(content: bytes, filename: str) -> str:
     elif suffix in (".txt", ".md"):
         text = _from_txt(content)
     else:
-        raise ValueError(f"Unsupported format: {suffix}. Use PDF, DOCX, TXT or MD.")
+        raise ValueError(f"Неподдерживаемый формат. Загрузите PDF, DOCX, TXT или MD")
 
-    # Normalize whitespace
     text = re.sub(r"[ \t]{2,}", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
 def compute_hash(text: str) -> str:
-    """SHA-256 хэш текста — используется для дедупликации файлов."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _from_pdf(content: bytes) -> str:
-    import pypdf  # type: ignore
+    import pypdf
 
     reader = pypdf.PdfReader(io.BytesIO(content))
     pages = []

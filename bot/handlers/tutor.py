@@ -144,7 +144,8 @@ async def _run_step_and_reply(
         tutor_asked=new_asked,
     )
 
-    await thinking_msg.edit_text(html.escape(action.message), reply_markup=keyboard)
+    text = html.escape(action.message).strip() or "Продолжаем..."
+    await thinking_msg.edit_text(text, reply_markup=keyboard)
 
 
 async def _start_tutor(
