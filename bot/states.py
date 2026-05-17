@@ -18,7 +18,3 @@ class QuizStates(StatesGroup):
 
 class ChatStates(StatesGroup):
     in_chat = State()
-
-
-class TutorStates(StatesGroup):
-    in_session = State()

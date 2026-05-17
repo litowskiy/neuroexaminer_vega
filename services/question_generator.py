@@ -3,7 +3,6 @@ import json
 import logging
 
 from openai import AsyncOpenAI
-from sentence_transformers import SentenceTransformer, util
 
 from config import settings
 
@@ -13,14 +12,21 @@ client = AsyncOpenAI(
     base_url=settings.OPENAI_BASE_URL,
 )
 
-ST_MODEL_NAME = "paraphrase-multilingual-mpnet-base-v2"
+try:
+    from sentence_transformers import SentenceTransformer, util as st_util
+    _ST_AVAILABLE = True
+except ImportError:
+    _ST_AVAILABLE = False
+    logger.warning("sentence-transformers not installed — cosine pre-filter disabled, GPT only")
+
+ST_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 SIMILARITY_ACCEPT = 0.80
 SIMILARITY_REJECT = 0.35
 
-_st_model: SentenceTransformer | None = None
+_st_model = None
 
 
-def _get_st_model() -> SentenceTransformer:
+def _get_st_model():
     global _st_model
     if _st_model is None:
         logger.info("Loading sentence-transformers model: %s", ST_MODEL_NAME)
@@ -28,11 +34,13 @@ def _get_st_model() -> SentenceTransformer:
     return _st_model
 
 
-def _cosine_score(reference: str, user_answer: str) -> float:
+def _cosine_score(reference: str, user_answer: str) -> float | None:
+    if not _ST_AVAILABLE:
+        return None
     model = _get_st_model()
     emb_ref = model.encode(reference, convert_to_tensor=True)
     emb_ans = model.encode(user_answer, convert_to_tensor=True)
-    return float(util.cos_sim(emb_ref, emb_ans).item())
+    return float(st_util.cos_sim(emb_ref, emb_ans).item())
 
 MAX_TEXT_CHARS = 12_000
 
@@ -111,16 +119,18 @@ async def evaluate_open_answer(question: str, reference: str, user_answer: str) 
     """
     loop = asyncio.get_event_loop()
     score = await loop.run_in_executor(None, _cosine_score, reference, user_answer)
-    logger.debug("Cosine similarity score: %.3f", score)
 
-    if score >= SIMILARITY_ACCEPT:
-        logger.debug("Accepted by cosine (%.3f >= %.2f)", score, SIMILARITY_ACCEPT)
-        return True
-    if score <= SIMILARITY_REJECT:
-        logger.debug("Rejected by cosine (%.3f <= %.2f)", score, SIMILARITY_REJECT)
-        return False
-
-    logger.debug("Gray zone (%.3f) — calling GPT", score)
+    if score is not None:
+        logger.debug("Cosine similarity score: %.3f", score)
+        if score >= SIMILARITY_ACCEPT:
+            logger.debug("Accepted by cosine (%.3f >= %.2f)", score, SIMILARITY_ACCEPT)
+            return True
+        if score <= SIMILARITY_REJECT:
+            logger.debug("Rejected by cosine (%.3f <= %.2f)", score, SIMILARITY_REJECT)
+            return False
+        logger.debug("Gray zone (%.3f) — calling GPT", score)
+    else:
+        logger.debug("Cosine pre-filter unavailable — calling GPT directly")
     prompt = (
         f"Вопрос: {question}\n"
         f"Эталонный ответ: {reference}\n"
