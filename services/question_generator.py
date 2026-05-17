@@ -1,6 +1,10 @@
+import asyncio
 import json
 import logging
+
 from openai import AsyncOpenAI
+from sentence_transformers import SentenceTransformer, util
+
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -8,6 +12,27 @@ client = AsyncOpenAI(
     api_key=settings.OPENAI_API_KEY,
     base_url=settings.OPENAI_BASE_URL,
 )
+
+ST_MODEL_NAME = "paraphrase-multilingual-mpnet-base-v2"
+SIMILARITY_ACCEPT = 0.80
+SIMILARITY_REJECT = 0.35
+
+_st_model: SentenceTransformer | None = None
+
+
+def _get_st_model() -> SentenceTransformer:
+    global _st_model
+    if _st_model is None:
+        logger.info("Loading sentence-transformers model: %s", ST_MODEL_NAME)
+        _st_model = SentenceTransformer(ST_MODEL_NAME)
+    return _st_model
+
+
+def _cosine_score(reference: str, user_answer: str) -> float:
+    model = _get_st_model()
+    emb_ref = model.encode(reference, convert_to_tensor=True)
+    emb_ans = model.encode(user_answer, convert_to_tensor=True)
+    return float(util.cos_sim(emb_ref, emb_ans).item())
 
 MAX_TEXT_CHARS = 12_000
 
@@ -77,6 +102,25 @@ async def generate_questions_from_text(text: str, count: int = 20) -> list[dict]
 
 
 async def evaluate_open_answer(question: str, reference: str, user_answer: str) -> bool:
+    """
+    Гибридная проверка открытого ответа:
+    1. Cosine similarity через sentence-transformers (локально, без API).
+       - score >= SIMILARITY_ACCEPT → сразу True
+       - score <= SIMILARITY_REJECT → сразу False
+    2. Серая зона → GPT YES/NO (API-запрос только при неопределённости).
+    """
+    loop = asyncio.get_event_loop()
+    score = await loop.run_in_executor(None, _cosine_score, reference, user_answer)
+    logger.debug("Cosine similarity score: %.3f", score)
+
+    if score >= SIMILARITY_ACCEPT:
+        logger.debug("Accepted by cosine (%.3f >= %.2f)", score, SIMILARITY_ACCEPT)
+        return True
+    if score <= SIMILARITY_REJECT:
+        logger.debug("Rejected by cosine (%.3f <= %.2f)", score, SIMILARITY_REJECT)
+        return False
+
+    logger.debug("Gray zone (%.3f) — calling GPT", score)
     prompt = (
         f"Вопрос: {question}\n"
         f"Эталонный ответ: {reference}\n"
