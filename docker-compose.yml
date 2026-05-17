@@ -1,10 +1,15 @@
 services:
   bot:
-    build: .
+    build:
+      context: .
+      args:
+        HF_TOKEN: ${HF_TOKEN}
     restart: unless-stopped
     env_file: .env
     volumes:
       - bot_data:/app/data
+      - hf_cache:/root/.cache/huggingface
 
 volumes:
   bot_data:
+  hf_cache:
