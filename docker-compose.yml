@@ -1,9 +1,6 @@
 services:
   bot:
-    build:
-      context: .
-      args:
-        HF_TOKEN: ${HF_TOKEN}
+    build: .
     restart: unless-stopped
     env_file: .env
     volumes:

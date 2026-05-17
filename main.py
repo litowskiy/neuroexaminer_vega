@@ -40,11 +40,21 @@ class DbSessionMiddleware(BaseMiddleware):
             return await handler(event, data)
 
 
+def _load_st_model() -> None:
+    from services.question_generator import _ST_AVAILABLE, _get_st_model
+    if _ST_AVAILABLE:
+        logger.info("Loading sentence-transformers model...")
+        _get_st_model()
+        logger.info("sentence-transformers model ready.")
+
+
 async def on_startup(bot: Bot) -> None:
     await init_db()
     async with AsyncSessionLocal() as db:
         await seed_base_questions(db)
     logger.info("Database ready.")
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _load_st_model)
 
 
 async def main() -> None:
