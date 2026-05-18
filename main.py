@@ -3,8 +3,6 @@
 """
 import asyncio
 import logging
-import os
-import sys
 
 from typing import Any, Awaitable, Callable
 
@@ -83,15 +81,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    PID_FILE = "/tmp/interview_bot.pid"
-    if os.path.exists(PID_FILE):
-        old_pid = open(PID_FILE).read().strip()
-        if os.path.exists(f"/proc/{old_pid}"):
-            print(f"Бот уже запущен (PID {old_pid}). Остановите его перед повторным запуском.")
-            sys.exit(1)
-    with open(PID_FILE, "w") as f:
-        f.write(str(os.getpid()))
-    try:
-        asyncio.run(main())
-    finally:
-        os.unlink(PID_FILE)
+    asyncio.run(main())
