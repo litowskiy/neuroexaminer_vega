@@ -12,6 +12,7 @@ langchain-community==0.3.24
 langchain-text-splitters==0.3.11
 faiss-cpu==1.10.0
 tiktoken==0.12.0
+pydantic>=2.7.4,<2.10
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.4.0+cpu
-sentence-transformers>=3.0.0
+torch==2.5.1+cpu
+sentence-transformers==3.3.1
