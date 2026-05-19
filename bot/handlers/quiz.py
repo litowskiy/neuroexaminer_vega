@@ -33,7 +33,7 @@ from bot.keyboards import (
     mode_selection_keyboard,
     next_question_keyboard,
     options_count_keyboard,
-    self_eval_keyboard,
+
     tf_keyboard,
 )
 from bot.states import QuizSetupStates, QuizStates
@@ -443,10 +443,13 @@ async def handle_open_answer(
         return
 
     if not question.reference_answer:
-        await message.answer(
-            "Оцените свой ответ самостоятельно:",
-            reply_markup=self_eval_keyboard(q_id),
-        )
+        session = await _load_session(state, db)
+        if session:
+            session.current_index += 1
+            await db.commit()
+        await message.answer("Эталонный ответ не задан, вопрос пропущен.")
+        if session:
+            await _show_next_question(message, session, db, state)
         return
 
     checking_msg = await message.answer("Проверяю ответ...")
@@ -457,10 +460,13 @@ async def handle_open_answer(
         )
     except Exception as exc:
         logger.error("Answer evaluation failed: %s", exc)
-        await checking_msg.edit_text(
-            f"Эталонный ответ:\n\n{question.reference_answer}\n\nОцените свой ответ:",
-            reply_markup=self_eval_keyboard(q_id),
-        )
+        session = await _load_session(state, db)
+        if session:
+            session.current_index += 1
+            await db.commit()
+        await checking_msg.edit_text("Не удалось проверить ответ, вопрос пропущен.")
+        if session:
+            await _show_next_question(checking_msg, session, db, state)
         return
 
     session = await _load_session(state, db)
