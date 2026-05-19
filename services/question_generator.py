@@ -1,6 +1,6 @@
-import asyncio
 import json
 import logging
+import math
 
 from openai import AsyncOpenAI
 
@@ -12,37 +12,10 @@ client = AsyncOpenAI(
     base_url=settings.OPENAI_BASE_URL,
 )
 
-try:
-    from sentence_transformers import SentenceTransformer, util as st_util
-    _ST_AVAILABLE = True
-except ImportError:
-    _ST_AVAILABLE = False
-    logger.warning("sentence-transformers not installed — cosine pre-filter disabled, GPT only")
-
-ST_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
-SIMILARITY_ACCEPT = 0.80
-SIMILARITY_REJECT = 0.35
-
-_st_model = None
-
-
-def _get_st_model():
-    global _st_model
-    if _st_model is None:
-        logger.info("Loading sentence-transformers model: %s", ST_MODEL_NAME)
-        _st_model = SentenceTransformer(ST_MODEL_NAME)
-    return _st_model
-
-
-def _cosine_score(reference: str, user_answer: str) -> float | None:
-    if not _ST_AVAILABLE:
-        return None
-    model = _get_st_model()
-    emb_ref = model.encode(reference, convert_to_tensor=True)
-    emb_ans = model.encode(user_answer, convert_to_tensor=True)
-    return float(st_util.cos_sim(emb_ref, emb_ans).item())
-
 MAX_TEXT_CHARS = 12_000
+EMBEDDING_MODEL = "text-embedding-3-small"
+COSINE_CORRECT_THRESHOLD = 0.82
+COSINE_WRONG_THRESHOLD = 0.45
 
 _COMBINED_PROMPT = """\
 Ты эксперт по подготовке к техническим собеседованиям.
@@ -95,7 +68,6 @@ _TF_PROMPT = """\
 
 
 async def generate_tf_statements(text: str, count: int = 10) -> list[dict]:
-    """Генерирует утверждения True/False для режима 'Верно/Неверно'."""
     if len(text) > MAX_TEXT_CHARS:
         text = text[:MAX_TEXT_CHARS] + "\n...[текст обрезан]"
     return await _call_api(_TF_PROMPT.format(text=text, count=count))
@@ -104,33 +76,42 @@ async def generate_tf_statements(text: str, count: int = 10) -> list[dict]:
 async def generate_questions_from_text(text: str, count: int = 20) -> list[dict]:
     if len(text) > MAX_TEXT_CHARS:
         text = text[:MAX_TEXT_CHARS] + "\n...[текст обрезан]"
-
-    raw = await _call_api(_COMBINED_PROMPT.format(text=text, count=count))
-    return raw
+    return await _call_api(_COMBINED_PROMPT.format(text=text, count=count))
 
 
 async def evaluate_open_answer(question: str, reference: str, user_answer: str) -> bool:
     """
-    Гибридная проверка открытого ответа:
-    1. Cosine similarity через sentence-transformers (локально, без API).
-       - score >= SIMILARITY_ACCEPT → сразу True
-       - score <= SIMILARITY_REJECT → сразу False
-    2. Серая зона → GPT YES/NO (API-запрос только при неопределённости).
+    Оценка открытого ответа:
+    1. Косинусное сходство через OpenAI embeddings (быстро, без GPT)
+    2. Серая зона → GPT YES/NO
+    Если API недоступен — бросает исключение, caller показывает самооценку.
     """
-    loop = asyncio.get_event_loop()
-    score = await loop.run_in_executor(None, _cosine_score, reference, user_answer)
+    ref_emb, ans_emb = await _get_embeddings([reference, user_answer])
+    similarity = _cosine(ref_emb, ans_emb)
+    logger.debug("Cosine similarity: %.3f", similarity)
 
-    if score is not None:
-        logger.debug("Cosine similarity score: %.3f", score)
-        if score >= SIMILARITY_ACCEPT:
-            logger.debug("Accepted by cosine (%.3f >= %.2f)", score, SIMILARITY_ACCEPT)
-            return True
-        if score <= SIMILARITY_REJECT:
-            logger.debug("Rejected by cosine (%.3f <= %.2f)", score, SIMILARITY_REJECT)
-            return False
-        logger.debug("Gray zone (%.3f) — calling GPT", score)
-    else:
-        logger.debug("Cosine pre-filter unavailable — calling GPT directly")
+    if similarity >= COSINE_CORRECT_THRESHOLD:
+        return True
+    if similarity <= COSINE_WRONG_THRESHOLD:
+        return False
+
+    return await _gpt_evaluate(question, reference, user_answer)
+
+
+async def _get_embeddings(texts: list[str]) -> list[list[float]]:
+    resp = await client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
+    resp.data.sort(key=lambda e: e.index)
+    return [e.embedding for e in resp.data]
+
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(y * y for y in b))
+    return dot / (norm_a * norm_b) if norm_a and norm_b else 0.0
+
+
+async def _gpt_evaluate(question: str, reference: str, user_answer: str) -> bool:
     prompt = (
         f"Вопрос: {question}\n"
         f"Эталонный ответ: {reference}\n"
@@ -144,8 +125,7 @@ async def evaluate_open_answer(question: str, reference: str, user_answer: str) 
         temperature=0,
         max_tokens=5,
     )
-    result = response.choices[0].message.content.strip().upper()
-    return result.startswith("YES")
+    return response.choices[0].message.content.strip().upper().startswith("YES")
 
 
 async def _call_api(prompt: str) -> list[dict]:

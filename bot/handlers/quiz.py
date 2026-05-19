@@ -438,8 +438,15 @@ async def handle_open_answer(
     question = await db.scalar(select(Question).where(Question.id == q_id))
     await state.update_data(current_open_question_id=None)
 
-    if not question or not question.reference_answer:
-        await message.answer("Ошибка: эталонный ответ не найден.", reply_markup=cancel_quiz_keyboard())
+    if not question:
+        await message.answer("Ошибка: вопрос не найден.", reply_markup=cancel_quiz_keyboard())
+        return
+
+    if not question.reference_answer:
+        await message.answer(
+            "Оцените свой ответ самостоятельно:",
+            reply_markup=self_eval_keyboard(q_id),
+        )
         return
 
     checking_msg = await message.answer("Проверяю ответ...")
@@ -628,8 +635,6 @@ def _pick_format(question: Question, mode: str) -> str:
     if len(formats) == 1:
         fmt = formats[0]
         if fmt == "closed" and (question.is_open or not question.options):
-            return "self_eval"
-        if fmt == "open" and not question.reference_answer:
             return "self_eval"
         return fmt
 
