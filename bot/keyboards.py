@@ -2,13 +2,9 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 BUILT_IN_TOPICS: dict[str, str] = {
-    "python": "Python",
-    "sql": "SQL",
-    "git": "Git",
-    "linux": "Linux",
-    "algorithms": "Алгоритмы",
-    "django": "Django",
-    "fastapi": "FastAPI",
+    "git_guide": "Руководство по Git",
+    "python_3_12": "Документация по Python 3.12",
+    "sql_lecture": "Введение в SQL",
 }
 
 ANSWER_LETTERS = ["А", "Б", "В", "Г"]
