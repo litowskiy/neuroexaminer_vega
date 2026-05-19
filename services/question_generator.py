@@ -15,7 +15,7 @@ client = AsyncOpenAI(
 MAX_TEXT_CHARS = 12_000
 EMBEDDING_MODEL = "text-embedding-3-small"
 COSINE_CORRECT_THRESHOLD = 0.82
-COSINE_WRONG_THRESHOLD = 0.45
+COSINE_WRONG_THRESHOLD = 0.35
 
 _COMBINED_PROMPT = """\
 Ты эксперт по подготовке к техническим собеседованиям.
@@ -116,7 +116,15 @@ async def _gpt_evaluate(question: str, reference: str, user_answer: str) -> bool
         f"Вопрос: {question}\n"
         f"Эталонный ответ: {reference}\n"
         f"Ответ студента: {user_answer}\n\n"
-        "Ответ студента правильный или в основном правильный? "
+        "Оцени ответ студента.\n\n"
+        "Засчитывай как правильный (YES) если:\n"
+        "- студент верно понял суть, даже если формулировка неформальная\n"
+        "- ответ неполный, но не содержит ошибок\n"
+        "- использованы синонимы или упрощённые объяснения\n\n"
+        "Засчитывай как неправильный (NO) если:\n"
+        "- студент перепутал понятия\n"
+        "- ответ содержит фактическую ошибку\n"
+        "- студент написал 'не знаю' или не ответил по существу\n\n"
         "Ответь ТОЛЬКО одним словом: YES или NO."
     )
     response = await client.chat.completions.create(
