@@ -130,6 +130,7 @@ class Assignment(Base):
     document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
     title = Column(String(256), nullable=False)
     mode = Column(String(32), default="closed")
+    question_count = Column(Integer, default=10)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     group = relationship("Group", back_populates="assignments")

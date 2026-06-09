@@ -79,6 +79,21 @@ def assignment_mode_keyboard(group_id: int, doc_id: int) -> InlineKeyboardMarkup
     return builder.as_markup()
 
 
+def assignment_count_keyboard(group_id: int, doc_id: int, mode: str, available: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    btns = [
+        InlineKeyboardButton(text=str(n), callback_data=f"tgtestcnt:{group_id}:{doc_id}:{mode}:{n}")
+        for n in (5, 10, 15, 20) if n <= available
+    ]
+    if not btns:
+        btns = [InlineKeyboardButton(
+            text=f"Все {available}", callback_data=f"tgtestcnt:{group_id}:{doc_id}:{mode}:{available}",
+        )]
+    builder.row(*btns)
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"tgtestdoc:{group_id}:{doc_id}"))
+    return builder.as_markup()
+
+
 def teacher_results_keyboard(group_id: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Обновить", callback_data=f"tgresults:{group_id}"))

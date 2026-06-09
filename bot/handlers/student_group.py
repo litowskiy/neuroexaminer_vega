@@ -207,6 +207,8 @@ async def start_assignment(callback: CallbackQuery, state: FSMContext, db: Async
         return
 
     random.shuffle(filtered)
+    if assignment.question_count:
+        filtered = filtered[:assignment.question_count]
     await _create_and_start_session(
         callback.message, user, filtered, db, state,
         topic_label=f"Тест: {assignment.title}",

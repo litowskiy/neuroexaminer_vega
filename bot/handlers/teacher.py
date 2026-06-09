@@ -20,6 +20,7 @@ from bot.handlers.start import get_or_create_user
 from bot.keyboards import (
     appeal_decision_keyboard,
     appeals_list_keyboard,
+    assignment_count_keyboard,
     assignment_mode_keyboard,
     teacher_docs_keyboard,
     teacher_group_keyboard,
@@ -219,9 +220,32 @@ async def new_test_pick_mode(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data.startswith("tgtestmode:"))
-async def new_test_create(callback: CallbackQuery, db: AsyncSession) -> None:
+async def new_test_pick_count(callback: CallbackQuery, db: AsyncSession) -> None:
     _, group_id_s, doc_id_s, mode = callback.data.split(":")
     group_id, doc_id = int(group_id_s), int(doc_id_s)
+
+    available = await db.scalar(
+        select(func.count()).select_from(Question).where(
+            Question.document_id == doc_id,
+            Question.tf_answer.is_(None),
+        )
+    ) or 0
+    if not available:
+        await callback.answer("В этом материале нет вопросов.", show_alert=True)
+        return
+
+    await callback.message.edit_text(
+        f"Режим: {MODE_LABELS.get(mode, mode)}\n"
+        f"Вопросов доступно: {available}\n\n"
+        "Сколько вопросов будет в тесте?",
+        reply_markup=assignment_count_keyboard(group_id, doc_id, mode, available),
+    )
+
+
+@router.callback_query(F.data.startswith("tgtestcnt:"))
+async def new_test_create(callback: CallbackQuery, db: AsyncSession) -> None:
+    _, group_id_s, doc_id_s, mode, count_s = callback.data.split(":")
+    group_id, doc_id, count = int(group_id_s), int(doc_id_s), int(count_s)
 
     doc = await db.scalar(select(Document).where(Document.id == doc_id))
     group = await db.scalar(select(Group).where(Group.id == group_id))
@@ -234,6 +258,7 @@ async def new_test_create(callback: CallbackQuery, db: AsyncSession) -> None:
         document_id=doc_id,
         title=doc.filename,
         mode=mode,
+        question_count=count,
     )
     db.add(assignment)
     await db.commit()
@@ -242,7 +267,8 @@ async def new_test_create(callback: CallbackQuery, db: AsyncSession) -> None:
         f"Тест создан.\n\n"
         f"Группа: {group.name}\n"
         f"Материал: {doc.filename}\n"
-        f"Режим: {MODE_LABELS.get(mode, mode)}\n\n"
+        f"Режим: {MODE_LABELS.get(mode, mode)}\n"
+        f"Вопросов: {count}\n\n"
         "Студенты группы увидят его в разделе «Тесты от преподавателя».",
         reply_markup=teacher_group_keyboard(group_id),
     )
