@@ -417,18 +417,24 @@ async def handle_mcq_answer(
     is_correct = bool(selected_opt and selected_opt.is_correct)
 
     session = await _load_session(state, db)
+    record = None
     if session:
         if is_correct:
             session.correct_count += 1
         session.current_index += 1
-        db.add(AnswerRecord(
+        record = AnswerRecord(
             session_id=session.id, question_id=q_id, user_id=session.user_id,
             user_answer=selected_opt.text if selected_opt else None, is_correct=is_correct,
-        ))
+        )
+        db.add(record)
         await db.commit()
+        await db.refresh(record)
 
+    markup = None
+    if record and session.assignment_id:
+        markup = appeal_keyboard(record.id)
     result = "Правильно." if is_correct else f"Неверно. Правильный ответ: {correct_opt.text if correct_opt else '?'}"
-    await callback.message.edit_text(f"{callback.message.text}\n\n{result}")
+    await callback.message.edit_text(f"{callback.message.text}\n\n{result}", reply_markup=markup)
 
     if session:
         await _show_next_question(callback.message, session, db, state)
@@ -537,19 +543,25 @@ async def handle_tf_answer(
     is_correct = (question.tf_answer == user_says_true)
 
     session = await _load_session(state, db)
+    record = None
     if session:
         if is_correct:
             session.correct_count += 1
         session.current_index += 1
-        db.add(AnswerRecord(
+        record = AnswerRecord(
             session_id=session.id, question_id=q_id, user_id=session.user_id,
             user_answer="Верно" if user_says_true else "Неверно", is_correct=is_correct,
-        ))
+        )
+        db.add(record)
         await db.commit()
+        await db.refresh(record)
 
+    markup = None
+    if record and session.assignment_id:
+        markup = appeal_keyboard(record.id)
     correct_label = "Верно" if question.tf_answer else "Неверно"
     verdict = "Правильно." if is_correct else f"Неверно. Правильный ответ: {correct_label}."
-    await callback.message.edit_text(f"{callback.message.text}\n\n{verdict}")
+    await callback.message.edit_text(f"{callback.message.text}\n\n{verdict}", reply_markup=markup)
 
     if session:
         await _show_next_question(callback.message, session, db, state)
