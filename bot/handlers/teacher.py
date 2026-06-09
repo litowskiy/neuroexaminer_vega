@@ -76,9 +76,70 @@ async def teacher_menu(callback: CallbackQuery, state: FSMContext, db: AsyncSess
     user = await get_or_create_user(
         callback.from_user.id, callback.from_user.username, callback.from_user.first_name, db,
     )
+
+    if not user.is_teacher:
+        await state.set_state(TeacherStates.waiting_auth_code)
+        await callback.message.edit_text(
+            "Доступ в кабинет преподавателя.\n\n"
+            "Введите кодовое слово преподавателя.\n\n"
+            "Команда /menu — отменить."
+        )
+        return
+
     pending = await _pending_appeals_count(user, db)
     await callback.message.edit_text(
-        "Кабинет преподавателя",
+        f"Кабинет преподавателя\n\n"
+        f"ФИО: {user.full_name or '—'}\n"
+        f"Предмет: {user.subject or '—'}",
+        reply_markup=teacher_menu_keyboard(pending),
+    )
+
+
+@router.message(TeacherStates.waiting_auth_code, F.text)
+async def teacher_auth_code(message: Message, state: FSMContext) -> None:
+    from config import settings
+    if message.text.strip() != settings.TEACHER_CODE:
+        await message.answer("Неверное кодовое слово. Попробуйте ещё раз или /menu — отменить.")
+        return
+
+    await state.set_state(TeacherStates.waiting_fio)
+    await message.answer("Кодовое слово принято.\n\nВведите ваше ФИО (например: Иванов Иван Иванович):")
+
+
+@router.message(TeacherStates.waiting_fio, F.text)
+async def teacher_fio(message: Message, state: FSMContext) -> None:
+    full_name = " ".join(message.text.split())[:256]
+    if len(full_name) < 5 or len(full_name.split()) < 2:
+        await message.answer("Введите полное ФИО (минимум фамилия и имя):")
+        return
+
+    await state.update_data(teacher_fio=full_name)
+    await state.set_state(TeacherStates.waiting_subject)
+    await message.answer("Введите название предмета, который вы преподаёте:")
+
+
+@router.message(TeacherStates.waiting_subject, F.text)
+async def teacher_subject(message: Message, state: FSMContext, db: AsyncSession) -> None:
+    subject = message.text.strip()[:128]
+    if not subject:
+        await message.answer("Название предмета не может быть пустым. Введите название:")
+        return
+
+    data = await state.get_data()
+    user = await get_or_create_user(
+        message.from_user.id, message.from_user.username, message.from_user.first_name, db,
+    )
+    user.is_teacher = True
+    user.full_name = data["teacher_fio"]
+    user.subject = subject
+    await db.commit()
+    await state.clear()
+
+    pending = await _pending_appeals_count(user, db)
+    await message.answer(
+        f"Регистрация завершена.\n\n"
+        f"ФИО: {user.full_name}\n"
+        f"Предмет: {user.subject}",
         reply_markup=teacher_menu_keyboard(pending),
     )
 
@@ -357,7 +418,7 @@ async def group_pdf(callback: CallbackQuery, db: AsyncSession) -> None:
         return
 
     teacher = await db.scalar(select(User).where(User.id == group.teacher_id))
-    teacher_name = (teacher.first_name or teacher.username or "—") if teacher else "—"
+    teacher_name = (teacher.full_name or teacher.first_name or teacher.username or "—") if teacher else "—"
 
     await callback.answer("Формирую отчёт...")
     results = await _collect_results(group, db)

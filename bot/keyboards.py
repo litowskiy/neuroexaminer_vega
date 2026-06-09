@@ -125,12 +125,21 @@ def appeal_decision_keyboard(appeal_id: int) -> InlineKeyboardMarkup:
 
 # ---------- Студент ----------
 
+def student_subjects_keyboard(items: list[tuple[int, str]]) -> InlineKeyboardMarkup:
+    """items — список (индекс предмета, подпись)."""
+    builder = InlineKeyboardBuilder()
+    for idx, label in items:
+        builder.row(InlineKeyboardButton(text=label[:50], callback_data=f"tsubj:{idx}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="back_to_menu"))
+    return builder.as_markup()
+
+
 def student_assignments_keyboard(items: list[tuple[int, str]]) -> InlineKeyboardMarkup:
     """items — список (assignment_id, подпись)."""
     builder = InlineKeyboardBuilder()
     for asg_id, label in items:
         builder.row(InlineKeyboardButton(text=label[:50], callback_data=f"asg:{asg_id}"))
-    builder.row(InlineKeyboardButton(text="Назад", callback_data="back_to_menu"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="teacher_tests"))
     return builder.as_markup()
 
 

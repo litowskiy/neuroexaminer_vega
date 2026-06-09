@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 
 from bot.handlers.start import get_or_create_user
 from bot.handlers.quiz import _create_and_start_session, _filter_questions
-from bot.keyboards import main_menu_keyboard, student_assignments_keyboard
+from bot.keyboards import main_menu_keyboard, student_assignments_keyboard, student_subjects_keyboard
 from bot.states import JoinGroupStates
 from database.models import (
     AnswerRecord,
@@ -107,39 +107,69 @@ async def join_fio(message: Message, state: FSMContext, db: AsyncSession) -> Non
 
 # ---------- Тесты от преподавателя ----------
 
+async def _student_subjects(user, db: AsyncSession) -> list[tuple[str, list]]:
+    """Возвращает [(предмет, [(Assignment, group_name), ...])], отсортировано по предмету."""
+    memberships = (await db.execute(
+        select(GroupMember).where(GroupMember.user_id == user.id)
+    )).scalars().all()
+    if not memberships:
+        return []
+
+    group_ids = [m.group_id for m in memberships]
+    from database.models import User as UserModel
+    rows = (await db.execute(
+        select(Assignment, Group.name, UserModel.subject)
+        .join(Group, Assignment.group_id == Group.id)
+        .join(UserModel, Group.teacher_id == UserModel.id)
+        .where(Assignment.group_id.in_(group_ids))
+        .order_by(Assignment.created_at.desc())
+    )).all()
+
+    by_subject: dict[str, list] = {}
+    for asg, group_name, subject in rows:
+        key = subject or "Без предмета"
+        by_subject.setdefault(key, []).append((asg, group_name))
+    return sorted(by_subject.items())
+
+
 @router.callback_query(F.data == "teacher_tests")
 async def teacher_tests(callback: CallbackQuery, state: FSMContext, db: AsyncSession) -> None:
     await state.clear()
     user = await get_or_create_user(
         callback.from_user.id, callback.from_user.username, callback.from_user.first_name, db,
     )
-    memberships = (await db.execute(
-        select(GroupMember).where(GroupMember.user_id == user.id)
-    )).scalars().all()
+    subjects = await _student_subjects(user, db)
 
-    if not memberships:
+    if not subjects:
         await callback.message.edit_text(
-            "Вы пока не состоите ни в одной группе.\n\n"
-            "Вступите в группу по промокоду от преподавателя.",
+            "Тестов пока нет.\n\n"
+            "Вступите в группу по промокоду — тесты от преподавателя появятся здесь.",
             reply_markup=main_menu_keyboard(),
         )
         return
 
-    group_ids = [m.group_id for m in memberships]
-    assignments = (await db.execute(
-        select(Assignment, Group.name)
-        .join(Group, Assignment.group_id == Group.id)
-        .where(Assignment.group_id.in_(group_ids))
-        .order_by(Assignment.created_at.desc())
-    )).all()
+    items = [
+        (idx, f"{subject} ({len(asgs)})")
+        for idx, (subject, asgs) in enumerate(subjects)
+    ]
+    await callback.message.edit_text(
+        "Тесты от преподавателя.\n\nВыберите предмет:",
+        reply_markup=student_subjects_keyboard(items),
+    )
 
-    if not assignments:
-        await callback.message.edit_text(
-            "Преподаватель пока не назначил тестов.",
-            reply_markup=main_menu_keyboard(),
-        )
+
+@router.callback_query(F.data.startswith("tsubj:"))
+async def subject_assignments(callback: CallbackQuery, db: AsyncSession) -> None:
+    idx = int(callback.data.split(":")[1])
+    user = await get_or_create_user(
+        callback.from_user.id, callback.from_user.username, callback.from_user.first_name, db,
+    )
+    subjects = await _student_subjects(user, db)
+    if idx >= len(subjects):
+        await callback.answer("Предмет не найден.", show_alert=True)
         return
 
+    subject, assignments = subjects[idx]
     items = []
     for asg, group_name in assignments:
         done = await db.scalar(
@@ -153,7 +183,7 @@ async def teacher_tests(callback: CallbackQuery, state: FSMContext, db: AsyncSes
         items.append((asg.id, f"{asg.title[:30]} — {group_name[:15]}{mark}"))
 
     await callback.message.edit_text(
-        "Тесты от преподавателя:",
+        f"Предмет: {subject}\n\nТесты:",
         reply_markup=student_assignments_keyboard(items),
     )
 

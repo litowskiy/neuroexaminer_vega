@@ -21,6 +21,9 @@ class ChatStates(StatesGroup):
 
 
 class TeacherStates(StatesGroup):
+    waiting_auth_code = State()
+    waiting_fio = State()
+    waiting_subject = State()
     waiting_group_name = State()
 
 

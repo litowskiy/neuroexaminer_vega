@@ -20,6 +20,9 @@ async def _migrate(conn) -> None:
         "ALTER TABLE questions ADD COLUMN tf_answer BOOLEAN DEFAULT NULL",
         "ALTER TABLE training_sessions ADD COLUMN assignment_id INTEGER DEFAULT NULL",
         "ALTER TABLE assignments ADD COLUMN question_count INTEGER DEFAULT 10",
+        "ALTER TABLE users ADD COLUMN is_teacher BOOLEAN DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN full_name VARCHAR(256) DEFAULT NULL",
+        "ALTER TABLE users ADD COLUMN subject VARCHAR(128) DEFAULT NULL",
     ]
     for sql in migrations:
         try:

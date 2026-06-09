@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     TEXTS_DIR: str = "./data/texts"
     VECTORS_DIR: str = "./data/vectors"
     CHAT_HISTORY_WINDOW: int = 6
+    TEACHER_CODE: str = "TEACHER2026"
 
 
 settings = Settings()

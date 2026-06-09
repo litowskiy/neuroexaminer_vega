@@ -17,6 +17,9 @@ class User(Base):
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String(64), nullable=True)
     first_name = Column(String(64), nullable=True)
+    is_teacher = Column(Boolean, default=False)
+    full_name = Column(String(256), nullable=True)
+    subject = Column(String(128), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     documents = relationship("Document", back_populates="user")
