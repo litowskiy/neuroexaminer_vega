@@ -36,8 +36,9 @@ from bot.keyboards import (
 
     tf_keyboard,
 )
+from bot.keyboards import appeal_keyboard
 from bot.states import QuizSetupStates, QuizStates
-from database.models import AnswerOption, Question, TrainingSession, User
+from database.models import AnswerOption, AnswerRecord, Question, TrainingSession, User
 from services.question_generator import evaluate_open_answer
 
 logger = logging.getLogger(__name__)
@@ -306,9 +307,12 @@ async def _create_and_start_session(
     marathon: bool,
     options_count: int = 4,
     use_answer: bool = False,
+    assignment_id: int | None = None,
 ) -> None:
     random.shuffle(questions)
-    session = TrainingSession(user_id=user.id, question_ids="[]", mode=mode)
+    session = TrainingSession(
+        user_id=user.id, question_ids="[]", mode=mode, assignment_id=assignment_id,
+    )
     session.set_question_ids([q.id for q in questions])
     db.add(session)
     await db.commit()
@@ -417,6 +421,10 @@ async def handle_mcq_answer(
         if is_correct:
             session.correct_count += 1
         session.current_index += 1
+        db.add(AnswerRecord(
+            session_id=session.id, question_id=q_id, user_id=session.user_id,
+            user_answer=selected_opt.text if selected_opt else None, is_correct=is_correct,
+        ))
         await db.commit()
 
     result = "Правильно." if is_correct else f"Неверно. Правильный ответ: {correct_opt.text if correct_opt else '?'}"
@@ -470,14 +478,27 @@ async def handle_open_answer(
         return
 
     session = await _load_session(state, db)
+    record = None
     if session:
         if is_correct:
             session.correct_count += 1
         session.current_index += 1
+        record = AnswerRecord(
+            session_id=session.id, question_id=q_id, user_id=session.user_id,
+            user_answer=message.text, is_correct=is_correct,
+        )
+        db.add(record)
         await db.commit()
+        await db.refresh(record)
 
     verdict = "Правильно." if is_correct else "Неточно."
-    await checking_msg.edit_text(f"{verdict}\n\nЭталонный ответ:\n\n{question.reference_answer}")
+    markup = None
+    if record and session and session.assignment_id:
+        markup = appeal_keyboard(record.id)
+    await checking_msg.edit_text(
+        f"{verdict}\n\nЭталонный ответ:\n\n{question.reference_answer}",
+        reply_markup=markup,
+    )
 
     if session:
         await _show_next_question(checking_msg, session, db, state)
@@ -520,6 +541,10 @@ async def handle_tf_answer(
         if is_correct:
             session.correct_count += 1
         session.current_index += 1
+        db.add(AnswerRecord(
+            session_id=session.id, question_id=q_id, user_id=session.user_id,
+            user_answer="Верно" if user_says_true else "Неверно", is_correct=is_correct,
+        ))
         await db.commit()
 
     correct_label = "Верно" if question.tf_answer else "Неверно"

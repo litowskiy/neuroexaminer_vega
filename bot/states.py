@@ -18,3 +18,12 @@ class QuizStates(StatesGroup):
 
 class ChatStates(StatesGroup):
     in_chat = State()
+
+
+class TeacherStates(StatesGroup):
+    waiting_group_name = State()
+
+
+class JoinGroupStates(StatesGroup):
+    waiting_code = State()
+    waiting_fio = State()

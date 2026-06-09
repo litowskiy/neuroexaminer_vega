@@ -21,7 +21,107 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text="Загрузить материал", callback_data="upload"))
     builder.row(InlineKeyboardButton(text="Встроенные темы", callback_data="topics"))
     builder.row(InlineKeyboardButton(text="Мои материалы", callback_data="my_materials"))
+    builder.row(InlineKeyboardButton(text="Тесты от преподавателя", callback_data="teacher_tests"))
+    builder.row(InlineKeyboardButton(text="Вступить в группу", callback_data="join_group"))
+    builder.row(InlineKeyboardButton(text="Кабинет преподавателя", callback_data="teacher"))
     builder.row(InlineKeyboardButton(text="Статистика", callback_data="stats"))
+    return builder.as_markup()
+
+
+# ---------- Преподаватель ----------
+
+def teacher_menu_keyboard(pending_appeals: int = 0) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Мои группы", callback_data="tgroups"))
+    appeals_label = f"Апелляции ({pending_appeals})" if pending_appeals else "Апелляции"
+    builder.row(InlineKeyboardButton(text=appeals_label, callback_data="tappeals"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="back_to_menu"))
+    return builder.as_markup()
+
+
+def teacher_groups_keyboard(groups: list) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for g in groups:
+        builder.row(InlineKeyboardButton(text=g.name[:40], callback_data=f"tgroup:{g.id}"))
+    builder.row(InlineKeyboardButton(text="Создать группу", callback_data="tgroup_new"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="teacher"))
+    return builder.as_markup()
+
+
+def teacher_group_keyboard(group_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Студенты", callback_data=f"tgstudents:{group_id}"))
+    builder.row(InlineKeyboardButton(text="Создать тест", callback_data=f"tgnewtest:{group_id}"))
+    builder.row(InlineKeyboardButton(text="Результаты", callback_data=f"tgresults:{group_id}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="tgroups"))
+    return builder.as_markup()
+
+
+def teacher_docs_keyboard(group_id: int, documents: list) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for doc in documents:
+        builder.row(InlineKeyboardButton(
+            text=doc.filename[:40], callback_data=f"tgtestdoc:{group_id}:{doc.id}",
+        ))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"tgroup:{group_id}"))
+    return builder.as_markup()
+
+
+def assignment_mode_keyboard(group_id: int, doc_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="Закрытые (тест)", callback_data=f"tgtestmode:{group_id}:{doc_id}:closed"))
+    builder.row(InlineKeyboardButton(
+        text="Открытые вопросы", callback_data=f"tgtestmode:{group_id}:{doc_id}:open"))
+    builder.row(InlineKeyboardButton(
+        text="Смешанный", callback_data=f"tgtestmode:{group_id}:{doc_id}:closed,open"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"tgnewtest:{group_id}"))
+    return builder.as_markup()
+
+
+def teacher_results_keyboard(group_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Обновить", callback_data=f"tgresults:{group_id}"))
+    builder.row(InlineKeyboardButton(text="Отчёт PDF", callback_data=f"tgpdf:{group_id}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"tgroup:{group_id}"))
+    return builder.as_markup()
+
+
+def appeals_list_keyboard(appeals: list[tuple[int, str]]) -> InlineKeyboardMarkup:
+    """appeals — список (appeal_id, подпись)."""
+    builder = InlineKeyboardBuilder()
+    for appeal_id, label in appeals:
+        builder.row(InlineKeyboardButton(text=label[:50], callback_data=f"tappeal:{appeal_id}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="teacher"))
+    return builder.as_markup()
+
+
+def appeal_decision_keyboard(appeal_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="Согласиться: засчитать (1)", callback_data=f"tappeal_set:{appeal_id}:1"))
+    builder.row(InlineKeyboardButton(
+        text="Согласиться: не засчитывать (0)", callback_data=f"tappeal_set:{appeal_id}:0"))
+    builder.row(InlineKeyboardButton(
+        text="Отклонить апелляцию", callback_data=f"tappeal_reject:{appeal_id}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="tappeals"))
+    return builder.as_markup()
+
+
+# ---------- Студент ----------
+
+def student_assignments_keyboard(items: list[tuple[int, str]]) -> InlineKeyboardMarkup:
+    """items — список (assignment_id, подпись)."""
+    builder = InlineKeyboardBuilder()
+    for asg_id, label in items:
+        builder.row(InlineKeyboardButton(text=label[:50], callback_data=f"asg:{asg_id}"))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="back_to_menu"))
+    return builder.as_markup()
+
+
+def appeal_keyboard(record_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Апелляция", callback_data=f"appeal:{record_id}"))
     return builder.as_markup()
 
 

@@ -79,6 +79,7 @@ class TrainingSession(Base):
     correct_count = Column(Integer, default=0)
     total_count = Column(Integer, default=0)
     is_complete = Column(Boolean, default=False)
+    assignment_id = Column(Integer, ForeignKey("assignments.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="sessions")
@@ -89,3 +90,77 @@ class TrainingSession(Base):
     def set_question_ids(self, ids: list[int]) -> None:
         self.question_ids = json.dumps(ids)
         self.total_count = len(ids)
+
+
+class Group(Base):
+    """Учебная группа, созданная преподавателем. code — промокод для вступления."""
+    __tablename__ = "groups"
+
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String(128), nullable=False)
+    code = Column(String(16), unique=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    teacher = relationship("User")
+    members = relationship("GroupMember", back_populates="group", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="group", cascade="all, delete-orphan")
+
+
+class GroupMember(Base):
+    """Участник группы. ФИО заполняется при вступлении."""
+    __tablename__ = "group_members"
+
+    id = Column(Integer, primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    full_name = Column(String(256), nullable=False)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+
+    group = relationship("Group", back_populates="members")
+    user = relationship("User")
+
+
+class Assignment(Base):
+    """Тест, назначенный преподавателем группе (вопросы берутся из документа)."""
+    __tablename__ = "assignments"
+
+    id = Column(Integer, primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
+    title = Column(String(256), nullable=False)
+    mode = Column(String(32), default="closed")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    group = relationship("Group", back_populates="assignments")
+    document = relationship("Document")
+
+
+class AnswerRecord(Base):
+    """Ответ на конкретный вопрос внутри сессии. Нужен для апелляций и отчётов."""
+    __tablename__ = "answer_records"
+
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey("training_sessions.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_answer = Column(Text, nullable=True)
+    is_correct = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("TrainingSession")
+    question = relationship("Question")
+    user = relationship("User")
+
+
+class Appeal(Base):
+    """Апелляция студента на оценку открытого ответа."""
+    __tablename__ = "appeals"
+
+    id = Column(Integer, primary_key=True)
+    record_id = Column(Integer, ForeignKey("answer_records.id"), nullable=False)
+    status = Column(String(16), default="pending")  # pending / approved / rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+
+    record = relationship("AnswerRecord")
