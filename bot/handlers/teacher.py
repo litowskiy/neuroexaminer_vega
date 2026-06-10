@@ -18,18 +18,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.start import get_or_create_user
 from bot.keyboards import (
+    STRICTNESS_LABELS,
     appeal_decision_keyboard,
     appeals_list_keyboard,
     assignment_count_keyboard,
     assignment_mode_keyboard,
+    strictness_keyboard,
     teacher_docs_keyboard,
     teacher_group_keyboard,
     teacher_groups_keyboard,
     teacher_menu_keyboard,
+    teacher_pdf_docs_keyboard,
     teacher_results_keyboard,
 )
 from bot.states import TeacherStates
 from database.models import (
+    AnswerOption,
     AnswerRecord,
     Appeal,
     Assignment,
@@ -40,7 +44,7 @@ from database.models import (
     TrainingSession,
     User,
 )
-from services.report import build_group_report
+from services.report import build_group_report, build_questions_pdf
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -433,6 +437,110 @@ async def group_pdf(callback: CallbackQuery, db: AsyncSession) -> None:
     await callback.message.answer_document(
         BufferedInputFile(pdf_bytes, filename=f"report_{group.code}.pdf"),
         caption=f"Отчёт по группе «{group.name}»",
+    )
+
+
+# ---------- Строгость проверки ----------
+
+@router.callback_query(F.data == "tstrict")
+async def strictness_menu(callback: CallbackQuery, db: AsyncSession) -> None:
+    user = await get_or_create_user(
+        callback.from_user.id, callback.from_user.username, callback.from_user.first_name, db,
+    )
+    current = user.eval_strictness or "standard"
+    await callback.message.edit_text(
+        "Строгость проверки открытых ответов в ваших тестах.\n\n"
+        "Мягкая — больше ответов засчитывается автоматически.\n"
+        "Стандартная — баланс.\n"
+        "Строгая — спорные ответы чаще уходят на проверку ИИ "
+        "и реже засчитываются по сходству.\n\n"
+        f"Текущая: {STRICTNESS_LABELS.get(current, current)}",
+        reply_markup=strictness_keyboard(current),
+    )
+
+
+@router.callback_query(F.data.startswith("tstrict_set:"))
+async def strictness_set(callback: CallbackQuery, db: AsyncSession) -> None:
+    value = callback.data.split(":")[1]
+    if value not in STRICTNESS_LABELS:
+        await callback.answer("Неизвестный пресет.", show_alert=True)
+        return
+
+    user = await get_or_create_user(
+        callback.from_user.id, callback.from_user.username, callback.from_user.first_name, db,
+    )
+    user.eval_strictness = value
+    await db.commit()
+
+    await callback.answer(f"Установлено: {STRICTNESS_LABELS[value]}")
+    await callback.message.edit_reply_markup(reply_markup=strictness_keyboard(value))
+
+
+# ---------- Вопросы в PDF ----------
+
+@router.callback_query(F.data == "tqdocs")
+async def pdf_docs_list(callback: CallbackQuery, db: AsyncSession) -> None:
+    user = await get_or_create_user(
+        callback.from_user.id, callback.from_user.username, callback.from_user.first_name, db,
+    )
+    docs = (await db.execute(
+        select(Document).where(
+            Document.user_id == user.id,
+            Document.status == "ready",
+        ).order_by(Document.created_at.desc())
+    )).scalars().all()
+
+    if not docs:
+        await callback.answer("Сначала загрузите материал.", show_alert=True)
+        return
+
+    await callback.message.edit_text(
+        "Выберите материал — вопросы будут собраны в PDF:",
+        reply_markup=teacher_pdf_docs_keyboard(docs),
+    )
+
+
+@router.callback_query(F.data.startswith("tqpdf:"))
+async def questions_pdf(callback: CallbackQuery, db: AsyncSession) -> None:
+    doc_id = int(callback.data.split(":")[1])
+    doc = await db.scalar(select(Document).where(Document.id == doc_id))
+    if not doc:
+        await callback.answer("Материал не найден.", show_alert=True)
+        return
+
+    questions = (await db.execute(
+        select(Question).where(Question.document_id == doc_id).order_by(Question.id)
+    )).scalars().all()
+    if not questions:
+        await callback.answer("В материале нет вопросов.", show_alert=True)
+        return
+
+    await callback.answer("Формирую PDF...")
+
+    q_dicts = []
+    for q in questions:
+        opts = (await db.execute(
+            select(AnswerOption)
+            .where(AnswerOption.question_id == q.id)
+            .order_by(AnswerOption.order)
+        )).scalars().all()
+        q_dicts.append({
+            "text": q.text,
+            "options": [(o.text, bool(o.is_correct)) for o in opts],
+            "reference_answer": q.reference_answer,
+            "tf_answer": q.tf_answer,
+        })
+
+    try:
+        pdf_bytes = build_questions_pdf(doc.filename, q_dicts)
+    except Exception as exc:
+        logger.error("Questions PDF failed: %s", exc)
+        await callback.message.answer("Не удалось сформировать PDF.")
+        return
+
+    await callback.message.answer_document(
+        BufferedInputFile(pdf_bytes, filename=f"questions_{doc.id}.pdf"),
+        caption=f"Вопросы по материалу «{doc.filename}»",
     )
 
 

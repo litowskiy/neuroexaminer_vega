@@ -14,8 +14,15 @@ client = AsyncOpenAI(
 
 MAX_TEXT_CHARS = 12_000
 EMBEDDING_MODEL = "text-embedding-3-small"
-COSINE_CORRECT_THRESHOLD = 0.82
-COSINE_WRONG_THRESHOLD = 0.35
+
+# Пресеты строгости проверки открытых ответов:
+# (порог "сразу правильно", порог "сразу неправильно")
+STRICTNESS_PRESETS: dict[str, tuple[float, float]] = {
+    "soft": (0.75, 0.25),
+    "standard": (0.82, 0.35),
+    "strict": (0.88, 0.45),
+}
+DEFAULT_STRICTNESS = "standard"
 
 _COMBINED_PROMPT = """\
 Ты эксперт по подготовке к техническим собеседованиям.
@@ -91,20 +98,26 @@ async def generate_questions_from_text(text: str, count: int = 20) -> list[dict]
     return await _call_api(_COMBINED_PROMPT.format(text=text, count=count))
 
 
-async def evaluate_open_answer(question: str, reference: str, user_answer: str) -> bool:
+async def evaluate_open_answer(
+    question: str, reference: str, user_answer: str,
+    strictness: str = DEFAULT_STRICTNESS,
+) -> bool:
     """
     Оценка открытого ответа:
     1. Косинусное сходство через OpenAI embeddings (быстро, без GPT)
     2. Серая зона → GPT YES/NO
-    Если API недоступен — бросает исключение, caller показывает самооценку.
+    strictness — пресет порогов (soft / standard / strict).
     """
+    correct_thr, wrong_thr = STRICTNESS_PRESETS.get(
+        strictness, STRICTNESS_PRESETS[DEFAULT_STRICTNESS]
+    )
     ref_emb, ans_emb = await _get_embeddings([reference, user_answer])
     similarity = _cosine(ref_emb, ans_emb)
-    logger.debug("Cosine similarity: %.3f", similarity)
+    logger.debug("Cosine similarity: %.3f (strictness=%s)", similarity, strictness)
 
-    if similarity >= COSINE_CORRECT_THRESHOLD:
+    if similarity >= correct_thr:
         return True
-    if similarity <= COSINE_WRONG_THRESHOLD:
+    if similarity <= wrong_thr:
         return False
 
     return await _gpt_evaluate(question, reference, user_answer)

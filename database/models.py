@@ -20,6 +20,7 @@ class User(Base):
     is_teacher = Column(Boolean, default=False)
     full_name = Column(String(256), nullable=True)
     subject = Column(String(128), nullable=True)
+    eval_strictness = Column(String(16), default="standard")  # soft / standard / strict
     created_at = Column(DateTime, default=datetime.utcnow)
 
     documents = relationship("Document", back_populates="user")

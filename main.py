@@ -15,7 +15,7 @@ from aiogram.types import TelegramObject
 from config import settings
 from database.db import AsyncSessionLocal, init_db
 from data.seed import seed_base_questions
-from bot.handlers import start, upload, topics, materials, quiz, chat, teacher, student_group
+from bot.handlers import start, upload, topics, materials, quiz, chat, teacher, student_group, editor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,6 +60,7 @@ async def main() -> None:
     dp.include_router(materials.router)
     dp.include_router(chat.router)
     dp.include_router(teacher.router)
+    dp.include_router(editor.router)
     dp.include_router(student_group.router)
     dp.include_router(quiz.router)
 

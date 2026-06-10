@@ -23,6 +23,7 @@ async def _migrate(conn) -> None:
         "ALTER TABLE users ADD COLUMN is_teacher BOOLEAN DEFAULT 0",
         "ALTER TABLE users ADD COLUMN full_name VARCHAR(256) DEFAULT NULL",
         "ALTER TABLE users ADD COLUMN subject VARCHAR(128) DEFAULT NULL",
+        "ALTER TABLE users ADD COLUMN eval_strictness VARCHAR(16) DEFAULT 'standard'",
     ]
     for sql in migrations:
         try:

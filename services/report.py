@@ -97,3 +97,65 @@ def build_group_report(
     buf = io.BytesIO()
     pdf.output(buf)
     return buf.getvalue()
+
+
+def _make_pdf() -> tuple[FPDF, str]:
+    pdf = FPDF()
+    font_path = _find_font(_FONT_PATHS)
+    if font_path:
+        pdf.add_font("Main", "", font_path)
+        bold_path = _find_font(_FONT_BOLD_PATHS) or font_path
+        pdf.add_font("Main", "B", bold_path)
+        font = "Main"
+    else:
+        logger.warning("Unicode font not found, PDF may render Cyrillic incorrectly.")
+        font = "Helvetica"
+    return pdf, font
+
+
+LETTERS = ["А", "Б", "В", "Г"]
+
+
+def build_questions_pdf(doc_title: str, questions: list[dict]) -> bytes:
+    """
+    Вопросы материала одним PDF.
+    questions: [
+      {
+        "text": str,
+        "options": [(text, is_correct)],     # закрытый вопрос
+        "reference_answer": str | None,      # открытый эталон
+        "tf_answer": bool | None,            # утверждение Верно/Неверно
+      }
+    ]
+    """
+    pdf, font = _make_pdf()
+    pdf.add_page()
+    pdf.set_font(font, "B", 16)
+    pdf.multi_cell(0, 8, f"Вопросы по материалу «{doc_title}»", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(font, "", 10)
+    pdf.cell(0, 6, f"Сформирован: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+
+    for i, q in enumerate(questions, 1):
+        pdf.set_font(font, "B", 11)
+        pdf.multi_cell(0, 7, f"{i}. {q['text']}", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font(font, "", 10)
+
+        if q.get("tf_answer") is not None:
+            answer = "Верно" if q["tf_answer"] else "Неверно"
+            pdf.multi_cell(0, 6, f"Тип: Верно/Неверно. Правильный ответ: {answer}", new_x="LMARGIN", new_y="NEXT")
+        elif q.get("options"):
+            for j, (opt_text, is_correct) in enumerate(q["options"][:4]):
+                mark = "  [ПРАВИЛЬНЫЙ]" if is_correct else ""
+                pdf.multi_cell(0, 6, f"   {LETTERS[j]}) {opt_text}{mark}", new_x="LMARGIN", new_y="NEXT")
+            if q.get("reference_answer"):
+                pdf.multi_cell(0, 6, f"Эталонный ответ: {q['reference_answer']}", new_x="LMARGIN", new_y="NEXT")
+        elif q.get("reference_answer"):
+            pdf.multi_cell(0, 6, f"Эталонный ответ: {q['reference_answer']}", new_x="LMARGIN", new_y="NEXT")
+
+        pdf.ln(3)
+
+    buf = io.BytesIO()
+    pdf.output(buf)
+    return buf.getvalue()

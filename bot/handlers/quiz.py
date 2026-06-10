@@ -468,9 +468,11 @@ async def handle_open_answer(
 
     checking_msg = await message.answer("Проверяю ответ...")
 
+    strictness = await _get_strictness(state, db)
     try:
         is_correct = await evaluate_open_answer(
-            question.text, question.reference_answer, message.text
+            question.text, question.reference_answer, message.text,
+            strictness=strictness,
         )
     except Exception as exc:
         logger.error("Answer evaluation failed: %s", exc)
@@ -690,6 +692,21 @@ def _pick_format(question: Question, mode: str) -> str:
         compatible.append("self_eval")
 
     return random.choice(compatible) if compatible else "self_eval"
+
+
+async def _get_strictness(state: FSMContext, db: AsyncSession) -> str:
+    """Для теста от преподавателя — его настройка строгости, иначе стандартная."""
+    from database.models import Assignment, Group
+    session = await _load_session(state, db)
+    if not session or not session.assignment_id:
+        return "standard"
+    teacher = await db.scalar(
+        select(User)
+        .join(Group, Group.teacher_id == User.id)
+        .join(Assignment, Assignment.group_id == Group.id)
+        .where(Assignment.id == session.assignment_id)
+    )
+    return (teacher.eval_strictness if teacher and teacher.eval_strictness else "standard")
 
 
 async def _load_session(state: FSMContext, db: AsyncSession) -> TrainingSession | None:

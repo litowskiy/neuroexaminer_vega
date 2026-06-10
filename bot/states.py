@@ -30,3 +30,9 @@ class TeacherStates(StatesGroup):
 class JoinGroupStates(StatesGroup):
     waiting_code = State()
     waiting_fio = State()
+
+
+class EditStates(StatesGroup):
+    waiting_question_text = State()
+    waiting_option_text = State()
+    waiting_reference = State()

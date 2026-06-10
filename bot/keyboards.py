@@ -35,7 +35,111 @@ def teacher_menu_keyboard(pending_appeals: int = 0) -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text="Мои группы", callback_data="tgroups"))
     appeals_label = f"Апелляции ({pending_appeals})" if pending_appeals else "Апелляции"
     builder.row(InlineKeyboardButton(text=appeals_label, callback_data="tappeals"))
+    builder.row(InlineKeyboardButton(text="Редактировать вопросы", callback_data="tedit"))
+    builder.row(InlineKeyboardButton(text="Вопросы в PDF", callback_data="tqdocs"))
+    builder.row(InlineKeyboardButton(text="Строгость проверки", callback_data="tstrict"))
     builder.row(InlineKeyboardButton(text="Назад", callback_data="back_to_menu"))
+    return builder.as_markup()
+
+
+STRICTNESS_LABELS: dict[str, str] = {
+    "soft": "Мягкая",
+    "standard": "Стандартная",
+    "strict": "Строгая",
+}
+
+
+def strictness_keyboard(current: str) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for key, label in STRICTNESS_LABELS.items():
+        mark = " ✓" if key == current else ""
+        builder.row(InlineKeyboardButton(
+            text=f"{label}{mark}", callback_data=f"tstrict_set:{key}",
+        ))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="teacher"))
+    return builder.as_markup()
+
+
+def teacher_pdf_docs_keyboard(documents: list) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for doc in documents:
+        builder.row(InlineKeyboardButton(
+            text=doc.filename[:40], callback_data=f"tqpdf:{doc.id}",
+        ))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="teacher"))
+    return builder.as_markup()
+
+
+# ---------- Редактор вопросов ----------
+
+def teacher_edit_docs_keyboard(documents: list) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for doc in documents:
+        builder.row(InlineKeyboardButton(
+            text=doc.filename[:40], callback_data=f"teditdoc:{doc.id}:0",
+        ))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data="teacher"))
+    return builder.as_markup()
+
+
+def edit_questions_page_keyboard(
+    doc_id: int, page: int, has_prev: bool, has_next: bool,
+    items: list[tuple[int, str]],
+) -> InlineKeyboardMarkup:
+    """items — (question_id, подпись) текущей страницы."""
+    builder = InlineKeyboardBuilder()
+    for q_id, label in items:
+        builder.row(InlineKeyboardButton(
+            text=label[:50], callback_data=f"teditq:{q_id}:{page}",
+        ))
+    nav = []
+    if has_prev:
+        nav.append(InlineKeyboardButton(text="« Назад", callback_data=f"teditdoc:{doc_id}:{page - 1}"))
+    if has_next:
+        nav.append(InlineKeyboardButton(text="Вперёд »", callback_data=f"teditdoc:{doc_id}:{page + 1}"))
+    if nav:
+        builder.row(*nav)
+    builder.row(InlineKeyboardButton(text="К материалам", callback_data="tedit"))
+    return builder.as_markup()
+
+
+def question_edit_keyboard(question, options: list, page: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(
+        text="Изменить текст вопроса", callback_data=f"teq_text:{question.id}:{page}",
+    ))
+    if question.tf_answer is not None:
+        builder.row(InlineKeyboardButton(
+            text="Переключить ответ Верно/Неверно", callback_data=f"teq_tf:{question.id}:{page}",
+        ))
+    else:
+        for i, opt in enumerate(options[:4]):
+            builder.row(InlineKeyboardButton(
+                text=f"Изменить вариант {ANSWER_LETTERS[i]}",
+                callback_data=f"teq_opt:{opt.id}:{question.id}:{page}",
+            ))
+        if options:
+            builder.row(InlineKeyboardButton(
+                text="Сменить правильный вариант", callback_data=f"teq_pick:{question.id}:{page}",
+            ))
+        builder.row(InlineKeyboardButton(
+            text="Изменить эталонный ответ", callback_data=f"teq_ref:{question.id}:{page}",
+        ))
+    builder.row(InlineKeyboardButton(
+        text="К списку вопросов", callback_data=f"teditdoc:{question.document_id}:{page}",
+    ))
+    return builder.as_markup()
+
+
+def pick_correct_keyboard(question_id: int, options: list, page: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for i, opt in enumerate(options[:4]):
+        mark = " ✓" if opt.is_correct else ""
+        builder.row(InlineKeyboardButton(
+            text=f"{ANSWER_LETTERS[i]}) {opt.text[:40]}{mark}",
+            callback_data=f"teq_setcorrect:{question_id}:{opt.id}:{page}",
+        ))
+    builder.row(InlineKeyboardButton(text="Назад", callback_data=f"teditq:{question_id}:{page}"))
     return builder.as_markup()
 
 
